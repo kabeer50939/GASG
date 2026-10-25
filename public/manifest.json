@@ -1,0 +1,40 @@
+{
+  "id": "/",
+  "name": "Gwadar Ambulance Service, Gwadar (G.A.S.G)",
+  "short_name": "G.A.S.G",
+  "description": "Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust (Reg No: Bcra-114272) — 24/7 Emergency Medical Services, Patient Transport, Mortuary & Community Welfare.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#c8102e",
+  "categories": ["medical", "health", "public-services"],
+  "icons": [
+    {
+      "src": "/uploads/pptx/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/uploads/pptx/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/uploads/pptx/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/uploads/pptx/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

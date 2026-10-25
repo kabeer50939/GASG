@@ -113,12 +113,18 @@ const headerLogo = document.getElementById('headerLogoImg');
 if (headerLogo && isCustomLogo && headerLogo.getAttribute('src') !== s.logo_url) {
 headerLogo.src = s.logo_url;
 }
-const footerLogo = document.getElementById('footerLogo');
-if (footerLogo) {
-const targetSrc = isCustomLogo ? s.logo_url : headerLogo ? headerLogo.src : s.logo_url;
-if (targetSrc && footerLogo.getAttribute('src') !== targetSrc) {
-footerLogo.src = targetSrc;
+const activeLogoSrc = isCustomLogo ? s.logo_url : headerLogo ? headerLogo.src : s.logo_url;
+['footerLogo', 'pwaBannerLogo', 'pwaGuideLogo'].forEach((id) => {
+const el = document.getElementById(id);
+if (el && activeLogoSrc && el.getAttribute('src') !== activeLogoSrc) {
+el.src = activeLogoSrc;
 }
+});
+if (isCustomLogo) {
+const fav = document.getElementById('dynamicFavicon');
+const appFav = document.getElementById('dynamicAppleIcon');
+if (fav) fav.href = s.logo_url;
+if (appFav) appFav.href = s.logo_url;
 }
 setText('footerOrgName', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
 setText('footerRegNo', s.registration_no ? `Registration No: ${s.registration_no}` : '');
@@ -826,6 +832,124 @@ activateSection(hashTarget, false);
 window.addEventListener('storage', (e) => {
 if (e.key === 'gasg_master_db_v1') loadPortalData();
 });
+setupPwaInstall();
+}
+function isStandalonePwa() {
+return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+function setupPwaInstall() {
+if ('serviceWorker' in navigator) {
+window.addEventListener('load', () => {
+navigator.serviceWorker.register('/sw.js').catch(() => {});
+});
+}
+const banner = document.getElementById('pwaInstallBanner');
+const headerBtn = document.getElementById('headerInstallAppBtn');
+const installBtn = document.getElementById('pwaInstallNowBtn');
+const dismissBtn = document.getElementById('pwaDismissBtn');
+const guideModal = document.getElementById('pwaGuideModal');
+const guideCloseBtn = document.getElementById('pwaGuideCloseBtn');
+const guideGotItBtn = document.getElementById('pwaGuideGotItBtn');
+const guideInstructions = document.getElementById('pwaGuideInstructions');
+if (isStandalonePwa()) {
+if (banner) banner.classList.add('hidden');
+if (headerBtn) headerBtn.classList.add('hidden');
+return;
+}
+if (headerBtn) headerBtn.classList.remove('hidden');
+function showInstallBanner() {
+if (isStandalonePwa()) return;
+if (sessionStorage.getItem('gasg_pwa_dismissed') === '1') return;
+if (banner) banner.classList.remove('hidden');
+}
+if (window.__gasgDeferredPrompt) {
+showInstallBanner();
+}
+window.addEventListener('beforeinstallprompt', (e) => {
+e.preventDefault();
+window.__gasgDeferredPrompt = e;
+showInstallBanner();
+});
+window.addEventListener('appinstalled', () => {
+window.__gasgDeferredPrompt = null;
+if (banner) banner.classList.add('hidden');
+if (headerBtn) headerBtn.classList.add('hidden');
+});
+let interactionTriggered = false;
+const triggerInstallBanner = () => {
+if (interactionTriggered) return;
+interactionTriggered = true;
+showInstallBanner();
+};
+['scroll', 'pointermove', 'touchstart', 'keydown'].forEach((evt) => {
+window.addEventListener(evt, triggerInstallBanner, { once: true, passive: true });
+});
+setTimeout(() => {
+showInstallBanner();
+}, 3000);
+function openGuideModal() {
+if (!guideModal) return;
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isAndroid = /android/i.test(navigator.userAgent);
+let instructions = '';
+if (isIos) {
+instructions = `
+<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
+  <li>Tap the <strong>Share</strong> button <span style="font-size:1.15rem;">⎋</span> at the bottom of Safari.</li>
+  <li>Scroll down and tap <strong>Add to Home Screen ➕</strong>.</li>
+  <li>Tap <strong>Add</strong> at top right to install G.A.S.G on your iPhone/iPad!</li>
+</ol>`;
+} else if (isAndroid) {
+instructions = `
+<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
+  <li>Tap the <strong>three dots menu ⋮</strong> at top right of your browser.</li>
+  <li>Select <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
+  <li>Confirm <strong>Install</strong> to add G.A.S.G directly to your apps!</li>
+</ol>`;
+} else {
+instructions = `
+<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
+  <li>Look at the right side of your browser address bar and click the <strong>Install icon (⊕ or 🖥️)</strong>.</li>
+  <li>Or click menu <strong>⋮ → Cast, save, and share → Install page as app</strong>.</li>
+  <li>Click <strong>Install</strong> to pin G.A.S.G directly to your Windows Taskbar or Desktop!</li>
+</ol>`;
+}
+if (guideInstructions) guideInstructions.innerHTML = instructions;
+guideModal.classList.remove('hidden');
+}
+async function handleInstallAction() {
+if (window.__gasgDeferredPrompt) {
+try {
+window.__gasgDeferredPrompt.prompt();
+const choice = await window.__gasgDeferredPrompt.userChoice;
+if (choice && choice.outcome === 'accepted') {
+window.__gasgDeferredPrompt = null;
+if (banner) banner.classList.add('hidden');
+if (headerBtn) headerBtn.classList.add('hidden');
+return;
+}
+} catch (_) {}
+}
+openGuideModal();
+}
+if (installBtn) installBtn.addEventListener('click', handleInstallAction);
+if (headerBtn) headerBtn.addEventListener('click', handleInstallAction);
+if (dismissBtn) {
+dismissBtn.addEventListener('click', () => {
+if (banner) banner.classList.add('hidden');
+sessionStorage.setItem('gasg_pwa_dismissed', '1');
+});
+}
+if (guideCloseBtn) {
+guideCloseBtn.addEventListener('click', () => {
+if (guideModal) guideModal.classList.add('hidden');
+});
+}
+if (guideGotItBtn) {
+guideGotItBtn.addEventListener('click', () => {
+if (guideModal) guideModal.classList.add('hidden');
+});
+}
 }
 document.addEventListener('DOMContentLoaded', () => {
 setupInteractions();
