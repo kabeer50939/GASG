@@ -64,7 +64,21 @@ try {
 let data = null;
 const cacheBuster = `_t=${Date.now()}`;
 
-// 1. Try Live Server API First (Network-first, bypasses browser & proxy cache)
+// Check if user on this browser has local admin modifications
+const localRaw = localStorage.getItem('gasg_master_db_v1');
+let localObj = null;
+if (localRaw) {
+try {
+localObj = JSON.parse(localRaw);
+} catch (_) {}
+}
+
+if (localObj && localObj._localModifiedAt) {
+data = localObj;
+}
+
+// 1. Try Live Server API First if no local admin modifications
+if (!data) {
 try {
 const res = await fetch(`/api/public/portal-data?${cacheBuster}`, {
 cache: 'no-store',
@@ -77,6 +91,7 @@ data = json;
 }
 }
 } catch (_) {}
+}
 
 // 2. Fallback to fresh portal_data.json (for static hosting or when API endpoint is unavailable)
 if (!data) {
@@ -94,16 +109,11 @@ data = json;
 } catch (_) {}
 }
 
-// 3. Offline PWA Fallback: If both network requests failed (e.g. no internet connectivity)
-if (!data) {
-const localRaw = localStorage.getItem('gasg_master_db_v1');
-if (localRaw) {
-try {
-data = JSON.parse(localRaw);
-} catch (_) {}
-}
-} else {
-// Update local cache with fresh data for future offline PWA support
+// 3. Fallback to cached local data if offline
+if (!data && localObj) {
+data = localObj;
+} else if (data && (!localObj || !localObj._localModifiedAt)) {
+// Only update local cache if it doesn't contain unexported admin modifications
 try {
 localStorage.setItem('gasg_master_db_v1', JSON.stringify(data));
 } catch (_) {}

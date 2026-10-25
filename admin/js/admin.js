@@ -111,6 +111,7 @@
       });
       dbObj.settings.local_backup_last_sync = nowStr;
       dbObj.settings.local_backup_status = 'Synced & Protected';
+      dbObj._localModifiedAt = Date.now();
       localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
     };
 
@@ -1487,6 +1488,32 @@
         } finally {
           downloadBtn1.disabled = false;
           downloadBtn1.innerHTML = origHtml;
+        }
+      });
+    }
+
+    const downloadJsonBtn = document.getElementById('downloadPortalJsonBtn');
+    if (downloadJsonBtn) {
+      downloadJsonBtn.addEventListener('click', async () => {
+        try {
+          const dbObj = await getStaticMasterDb();
+          const cleanData = JSON.parse(JSON.stringify(dbObj));
+          delete cleanData.admins;
+          delete cleanData.auditLogs;
+          delete cleanData._localModifiedAt;
+          const jsonStr = JSON.stringify(cleanData, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'portal_data.json';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          showToast('Downloaded updated portal_data.json successfully!');
+        } catch (err) {
+          showToast(err.message || 'Could not download JSON file.', true);
         }
       });
     }
