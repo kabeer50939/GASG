@@ -64,21 +64,7 @@ try {
 let data = null;
 const cacheBuster = `_t=${Date.now()}`;
 
-// Check if user on this browser has local admin modifications
-const localRaw = localStorage.getItem('gasg_master_db_v1');
-let localObj = null;
-if (localRaw) {
-try {
-localObj = JSON.parse(localRaw);
-} catch (_) {}
-}
-
-if (localObj && localObj._localModifiedAt) {
-data = localObj;
-}
-
-// 1. Try Live Server API First if no local admin modifications
-if (!data) {
+// 1. Try Live Server API First
 try {
 const res = await fetch(`/api/public/portal-data?${cacheBuster}`, {
 cache: 'no-store',
@@ -91,7 +77,6 @@ data = json;
 }
 }
 } catch (_) {}
-}
 
 // 2. Fallback to fresh portal_data.json (for static hosting or when API endpoint is unavailable)
 if (!data) {
@@ -110,10 +95,15 @@ data = json;
 }
 
 // 3. Fallback to cached local data if offline
-if (!data && localObj) {
-data = localObj;
-} else if (data && (!localObj || !localObj._localModifiedAt)) {
-// Only update local cache if it doesn't contain unexported admin modifications
+if (!data) {
+const localRaw = localStorage.getItem('gasg_master_db_v1');
+if (localRaw) {
+try {
+data = JSON.parse(localRaw);
+} catch (_) {}
+}
+} else {
+// Update local cache with live network data for offline support
 try {
 localStorage.setItem('gasg_master_db_v1', JSON.stringify(data));
 } catch (_) {}

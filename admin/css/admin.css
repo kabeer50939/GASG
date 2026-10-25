@@ -286,6 +286,71 @@ body {
   color: var(--adm-muted);
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cloud-sync-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #166534;
+  transition: all 0.2s ease;
+}
+
+.cloud-sync-pill.syncing {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.cloud-sync-pill.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.cloud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  display: inline-block;
+}
+
+.cloud-dot.syncing {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  animation: pulse 1s infinite alternate;
+}
+
+.cloud-dot.error {
+  background: #dc2626;
+}
+
+.btn-cloud-sync {
+  font-size: 0.75rem !important;
+  padding: 0.35rem 0.75rem !important;
+  font-weight: 600 !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+  background: #ffffff !important;
+  cursor: pointer;
+}
+
+.btn-cloud-sync:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
 .admin-user-pill {
   display: flex;
   align-items: center;

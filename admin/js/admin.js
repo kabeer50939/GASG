@@ -56,18 +56,190 @@
     toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
   }
 
+  function utf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      bin += String.fromCharCode(bytes[i]);
+    }
+    return btoa(bin);
+  }
+
+  function arrayBufferToBase64(buffer) {
+    let bin = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      bin += String.fromCharCode(bytes[i]);
+    }
+    return btoa(bin);
+  }
+
+  function updateCloudStatus(status, text) {
+    const dot = document.getElementById('cloudSyncDot');
+    const label = document.getElementById('cloudSyncText');
+    const pill = document.getElementById('cloudSyncPill');
+    if (dot) {
+      dot.className = `cloud-dot ${status}`;
+    }
+    if (label && text) {
+      label.textContent = text;
+    }
+    if (pill) {
+      pill.className = `cloud-sync-pill ${status}`;
+    }
+  }
+
+  async function commitPortalDataToHuggingFace(dbObj, commitSummary = 'Update portal data', extraFiles = []) {
+    const cloudCfg = window.GASG_CLOUD_CONFIG || {};
+    const token = localStorage.getItem('gasg_hf_token') ||
+      (dbObj && dbObj.settings && dbObj.settings.hf_token) ||
+      cloudCfg.token;
+    const repo = localStorage.getItem('gasg_hf_repo') ||
+      (dbObj && dbObj.settings && dbObj.settings.hf_repo) ||
+      cloudCfg.repo ||
+      'kabeer50939/gasg';
+
+    if (!token || !repo) {
+      console.warn('Cloud sync skipped: Hugging Face token or repo not configured.');
+      return { success: false, error: 'Missing token/repo' };
+    }
+
+    const publicData = {
+      settings: dbObj.settings || {},
+      missionPoints: dbObj.missionPoints || [],
+      services: dbObj.services || [],
+      patientStats: dbObj.patientStats || [],
+      disasters: dbObj.disasters || [],
+      ambulances: dbObj.ambulances || [],
+      teamMembers: dbObj.teamMembers || [],
+      facilities: dbObj.facilities || [],
+      medicalInventory: dbObj.medicalInventory || [],
+      projectsDemands: dbObj.projectsDemands || [],
+      gallery: dbObj.gallery || []
+    };
+
+    const jsonStr = JSON.stringify(publicData, null, 2);
+    const base64Content = utf8ToBase64(jsonStr);
+
+    const operations = [
+      JSON.stringify({
+        key: 'header',
+        value: {
+          summary: (commitSummary || 'Update portal data').slice(0, 72),
+          description: commitSummary || 'Committed from GASG Web Admin Panel'
+        }
+      }),
+      JSON.stringify({
+        key: 'file',
+        value: {
+          path: 'data/portal_data.json',
+          content: base64Content,
+          encoding: 'base64'
+        }
+      }),
+      JSON.stringify({
+        key: 'file',
+        value: {
+          path: 'public/data/portal_data.json',
+          content: base64Content,
+          encoding: 'base64'
+        }
+      })
+    ];
+
+    if (Array.isArray(extraFiles)) {
+      for (const extra of extraFiles) {
+        if (extra && extra.path && extra.content) {
+          operations.push(
+            JSON.stringify({
+              key: 'file',
+              value: {
+                path: extra.path,
+                content: extra.content,
+                encoding: extra.encoding || 'base64'
+              }
+            })
+          );
+        }
+      }
+    }
+
+    const ndjson = operations.join('\n');
+
+    const res = await fetch(`https://huggingface.co/api/spaces/${repo}/commit/main`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/x-ndjson'
+      },
+      body: ndjson
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Cloud commit failed (${res.status}): ${errText}`);
+    }
+
+    const result = await res.json();
+    return result;
+  }
+
   async function getStaticMasterDb() {
     let dbObj = null;
-    const raw = localStorage.getItem('gasg_master_db_v1');
-    if (raw) {
+    const cacheBuster = `_t=${Date.now()}`;
+    try {
+      const res = await fetch(`/data/portal_data.json?${cacheBuster}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
+      if (res.ok) {
+        dbObj = await res.json();
+      }
+    } catch (_) {}
+
+    if (!dbObj || !dbObj.settings) {
+      const raw = localStorage.getItem('gasg_master_db_v1');
+      if (raw) {
+        try {
+          dbObj = JSON.parse(raw);
+        } catch (_) {}
+      }
+    }
+
+    if (!dbObj || !dbObj.settings) {
+      dbObj = {
+        settings: {},
+        missionPoints: [],
+        services: [],
+        patientStats: [],
+        disasters: [],
+        ambulances: [],
+        teamMembers: [],
+        facilities: [],
+        medicalInventory: [],
+        projectsDemands: [],
+        gallery: []
+      };
+    }
+
+    const localRaw = localStorage.getItem('gasg_master_db_v1');
+    if (localRaw) {
       try {
-        dbObj = JSON.parse(raw);
+        const localObj = JSON.parse(localRaw);
+        if (Array.isArray(localObj.admins) && localObj.admins.length) {
+          dbObj.admins = localObj.admins;
+        }
+        if (Array.isArray(localObj.auditLogs) && localObj.auditLogs.length) {
+          dbObj.auditLogs = localObj.auditLogs;
+        }
+        if (Array.isArray(localObj.contactMessages) && localObj.contactMessages.length) {
+          dbObj.contactMessages = localObj.contactMessages;
+        }
       } catch (_) {}
     }
-    if (!dbObj || !dbObj.settings) {
-      const res = await fetch('/data/portal_data.json', { cache: 'no-store' });
-      dbObj = await res.json();
-    }
+
     if (!dbObj.contactMessages) dbObj.contactMessages = [];
     if (!dbObj.admins) {
       dbObj.admins = [
@@ -100,7 +272,7 @@
     }
 
     const dbObj = await getStaticMasterDb();
-    const saveStaticDb = (action, details) => {
+    const saveStaticDb = async (action, details) => {
       const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
       dbObj.auditLogs.unshift({
         id: Date.now(),
@@ -110,9 +282,18 @@
         created_at: nowStr
       });
       dbObj.settings.local_backup_last_sync = nowStr;
-      dbObj.settings.local_backup_status = 'Synced & Protected';
+      dbObj.settings.local_backup_status = 'Published Live to Cloud';
       dbObj._localModifiedAt = Date.now();
       localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
+
+      updateCloudStatus('syncing', 'Publishing to Cloud Space...');
+      try {
+        await commitPortalDataToHuggingFace(dbObj, `${action}: ${details || ''}`);
+        updateCloudStatus('synced', `Live in Cloud (${nowStr.slice(11, 19)})`);
+      } catch (cloudErr) {
+        console.warn('Cloud commit failed, saved locally:', cloudErr);
+        updateCloudStatus('error', 'Saved locally (Cloud sync warning)');
+      }
     };
 
     if (url === '/api/admin/dashboard' && method === 'GET') {
@@ -126,7 +307,7 @@
     }
     if (url === '/api/admin/settings' && method === 'PUT') {
       Object.assign(dbObj.settings, body || {});
-      saveStaticDb('SETTINGS_UPDATED', 'Updated Header & Site Settings');
+      await saveStaticDb('SETTINGS_UPDATED', 'Updated Header & Site Settings');
       return { success: true };
     }
     if (url === '/api/auth/password' && method === 'PUT') {
@@ -138,12 +319,12 @@
         }
         dbObj.admins[idx].password = body.newPassword;
       }
-      saveStaticDb('PASSWORD_UPDATED', 'Updated administrator password');
+      await saveStaticDb('PASSWORD_UPDATED', 'Updated administrator password');
       return { success: true };
     }
     if (url === '/api/admin/database/backup-config' && method === 'PUT') {
       dbObj.settings.local_backup_path = body.local_backup_path;
-      saveStaticDb('LOCAL_DB_BACKUP_LINKED', body.local_backup_path);
+      await saveStaticDb('LOCAL_DB_BACKUP_LINKED', body.local_backup_path);
       return { success: true, targetFile: body.local_backup_path, lastSync: dbObj.settings.local_backup_last_sync, status: 'Synced & Protected' };
     }
 
@@ -171,20 +352,20 @@
         if (method === 'POST') {
           const newItem = { id: Date.now(), is_active: 1, ...(body || {}) };
           list.push(newItem);
-          saveStaticDb(`${endpointKey.toUpperCase()}_CREATED`, newItem.title || newItem.member_name || newItem.unit_name || newItem.id);
+          await saveStaticDb(`${endpointKey.toUpperCase()}_CREATED`, newItem.title || newItem.member_name || newItem.unit_name || newItem.id);
           return { success: true, id: newItem.id };
         }
         if (method === 'PUT' && idStr) {
           const idx = list.findIndex((x) => Number(x.id) === Number(idStr));
           if (idx !== -1) {
             list[idx] = { ...list[idx], ...(body || {}) };
-            saveStaticDb(`${endpointKey.toUpperCase()}_UPDATED`, `ID ${idStr}`);
+            await saveStaticDb(`${endpointKey.toUpperCase()}_UPDATED`, `ID ${idStr}`);
           }
           return { success: true };
         }
         if (method === 'DELETE' && idStr) {
           dbObj[colKey] = list.filter((x) => Number(x.id) !== Number(idStr));
-          saveStaticDb(`${endpointKey.toUpperCase()}_DELETED`, `ID ${idStr}`);
+          await saveStaticDb(`${endpointKey.toUpperCase()}_DELETED`, `ID ${idStr}`);
           return { success: true };
         }
       }
@@ -1573,6 +1754,7 @@
           }
 
           if (!restoredOnServer) {
+            submitBtn.textContent = 'Parsing Backup File...';
             const restoredData = await parseBackupFileInBrowser(file);
             const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
             if (!restoredData.settings) restoredData.settings = {};
@@ -1587,14 +1769,37 @@
               created_at: nowStr
             });
             localStorage.setItem('gasg_master_db_v1', JSON.stringify(restoredData));
+
+            submitBtn.textContent = 'Publishing Restored Data to Cloud Space...';
+            updateCloudStatus('syncing', 'Publishing Restored Database...');
+
+            const extraFiles = [];
+            if (file.name.endsWith('.sqlite') || file.name.endsWith('.db')) {
+              try {
+                const arrayBuf = await file.arrayBuffer();
+                extraFiles.push({
+                  path: 'data/gasg_portal.sqlite',
+                  content: arrayBufferToBase64(arrayBuf),
+                  encoding: 'base64'
+                });
+              } catch (_) {}
+            }
+
+            try {
+              await commitPortalDataToHuggingFace(restoredData, `Restore database: ${file.name}`, extraFiles);
+              updateCloudStatus('synced', `Live in Cloud (${nowStr.slice(11, 19)})`);
+            } catch (cloudErr) {
+              console.warn('Cloud commit warning during restore:', cloudErr);
+              updateCloudStatus('error', 'Restored locally (Cloud sync warning)');
+            }
           }
 
           if (state.browserFileHandle) {
             await syncBrowserLinkedFileHandle();
           }
-          showToast('Backup restored successfully! All website sections are updated.');
+          showToast('Backup restored successfully! All website sections are updated and published live.');
           uploadBackupInput.value = '';
-          selectedBackupLabel.innerHTML = '&#10003; Backup Restored Successfully!';
+          selectedBackupLabel.innerHTML = '&#10003; Backup Restored &amp; Published Live!';
           if (restoreBackupSubmitBtn) restoreBackupSubmitBtn.classList.add('hidden');
           if (chooseBackupFileLabel) chooseBackupFileLabel.innerHTML = '&#128194; Select Backup File to Restore';
           await refreshDashboard();
@@ -1603,6 +1808,29 @@
         } finally {
           submitBtn.disabled = false;
           submitBtn.innerHTML = '&#10003; Confirm &amp; Restore Now';
+        }
+      });
+    }
+
+    // Manual Cloud Publish Button
+    const btnManualCloudSync = document.getElementById('btnManualCloudSync');
+    if (btnManualCloudSync) {
+      btnManualCloudSync.addEventListener('click', async () => {
+        btnManualCloudSync.disabled = true;
+        btnManualCloudSync.innerHTML = '&#8987; Publishing...';
+        updateCloudStatus('syncing', 'Publishing to Cloud...');
+        try {
+          const dbObj = await getStaticMasterDb();
+          await commitPortalDataToHuggingFace(dbObj, 'Manual cloud publish from Admin Panel');
+          const nowStr = new Date().toISOString().replace('T', ' ').slice(11, 19);
+          updateCloudStatus('synced', `Live in Cloud (${nowStr})`);
+          showToast('Website data successfully published live to Cloud! Visible everywhere.');
+        } catch (err) {
+          showToast('Cloud Publish Failed: ' + err.message, true);
+          updateCloudStatus('error', 'Cloud sync failed');
+        } finally {
+          btnManualCloudSync.disabled = false;
+          btnManualCloudSync.innerHTML = '&#9729; Publish Live';
         }
       });
     }

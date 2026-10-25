@@ -89,6 +89,13 @@
           </div>
         </div>
         <div class="topbar-right">
+          <div class="cloud-sync-pill" id="cloudSyncPill" title="Live Cloud Synchronization (Hugging Face Space)">
+            <span class="cloud-dot synced" id="cloudSyncDot"></span>
+            <span id="cloudSyncText">Cloud: Published Live</span>
+          </div>
+          <button id="btnManualCloudSync" class="btn btn-outline btn-cloud-sync" title="Push all current data live to cloud website">
+            &#9729; Publish Live
+          </button>
           <div class="admin-user-pill">
             <span class="admin-role-dot"></span>
             <div>
@@ -826,6 +833,7 @@
     </div>
   </div>
 
-  <script src="/admin/js/admin.js?v=20261025_8"></script>
+  <script src="/admin/js/cloud_credentials.js"></script>
+  <script src="/admin/js/admin.js?v=20261025_9"></script>
 </body>
 </html>

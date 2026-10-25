@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gasg-pwa-v3';
+const CACHE_NAME = 'gasg-pwa-v4';
 const CORE_ASSETS = [
   '/',
   '/index.html',
