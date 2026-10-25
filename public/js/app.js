@@ -122,13 +122,14 @@
       s.header_subtitle || 'Bin Ahsaan Welfare Trust • Emergency Medical Services (Reg No: Bcra-114272)'
     );
 
+    const isCustomLogo = s.logo_url && s.logo_url !== '/uploads/pptx/image5.png';
     const headerLogo = document.getElementById('headerLogoImg');
-    if (headerLogo && s.logo_url && headerLogo.getAttribute('src') !== s.logo_url) {
+    if (headerLogo && isCustomLogo && headerLogo.getAttribute('src') !== s.logo_url) {
       headerLogo.src = s.logo_url;
     }
 
     const footerLogo = document.getElementById('footerLogo');
-    if (footerLogo && s.logo_url && footerLogo.getAttribute('src') !== s.logo_url) {
+    if (footerLogo && isCustomLogo && footerLogo.getAttribute('src') !== s.logo_url) {
       footerLogo.src = s.logo_url;
     }
 
@@ -147,9 +148,16 @@
 
     const backdrop = document.getElementById('heroBackdrop');
     if (backdrop && s.hero_bg_url) {
-      setTimeout(() => {
+      if (s.hero_bg_url !== '/uploads/pptx/image1.jpeg') {
         backdrop.style.backgroundImage = `url('${encodeURI(s.hero_bg_url)}')`;
-      }, 250);
+      } else {
+        const loadHeroBg = () => {
+          backdrop.style.backgroundImage = `url('${encodeURI(s.hero_bg_url)}')`;
+        };
+        ['scroll', 'pointermove', 'touchstart'].forEach((evt) =>
+          window.addEventListener(evt, loadHeroBg, { once: true, passive: true })
+        );
+      }
     }
 
     setText('heroHoursBadge', s.operating_hours || '24/7 Hours Service');
@@ -161,8 +169,9 @@
     setText('heroShortName', s.short_name || 'G.A.S.G');
     setText('heroDurationText', s.service_duration || '');
 
+    const isCustomLogo = s.logo_url && s.logo_url !== '/uploads/pptx/image5.png';
     const heroLogo = document.getElementById('heroLogoImg');
-    if (heroLogo && s.logo_url && heroLogo.getAttribute('src') !== s.logo_url) {
+    if (heroLogo && isCustomLogo && heroLogo.getAttribute('src') !== s.logo_url) {
       heroLogo.src = s.logo_url;
     }
 

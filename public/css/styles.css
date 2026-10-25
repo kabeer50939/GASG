@@ -1,13 +1,13 @@
 :root {
-  --red-primary: #e11d2e;
-  --red-dark: #b91c1c;
+  --red-primary: #c8102e;
+  --red-dark: #991b1b;
   --red-soft: #fef2f2;
   --navy-primary: #1a2a5e;
   --navy-dark: #0f172a;
   --gold-accent: #b89b49;
   --text-main: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
+  --text-secondary: #374151;
+  --text-muted: #4b5563;
   --bg-white: #ffffff;
   --bg-light: #f8fafc;
   --bg-header: #fafafa;
@@ -125,7 +125,7 @@ a {
 .brand-subtitle {
   font-size: 0.92rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #4b5563;
   margin-top: 0.12rem;
   line-height: 1.3;
 }
@@ -432,6 +432,10 @@ a {
 .portal-section.active-section {
   display: block;
   animation: fadeInSection 0.22s ease-out;
+}
+
+#home.active-section {
+  animation: none;
 }
 
 @keyframes fadeInSection {
