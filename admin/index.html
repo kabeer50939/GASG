@@ -596,7 +596,7 @@
               <p>Select a backup file from your computer to restore all website content and settings immediately.</p>
               <div class="backup-card-spacer"></div>
               <form id="restoreBackupForm" class="backup-upload-form">
-                <input type="file" id="uploadBackupFileInput" name="backupFile" accept=".sqlite,.db,application/x-sqlite3,application/octet-stream" class="hidden" />
+                <input type="file" id="uploadBackupFileInput" name="backupFile" accept=".sqlite,.db,.json,application/x-sqlite3,application/octet-stream,application/json" class="hidden" />
                 <div id="selectedBackupFileName" class="backup-file-pill hidden"></div>
                 <label for="uploadBackupFileInput" id="chooseBackupFileLabel" class="btn-admin btn-admin-secondary btn-admin-block backup-big-btn" style="cursor:pointer; margin:0;">
                   &#128194; Select Backup File to Restore
@@ -818,6 +818,6 @@
     </div>
   </div>
 
-  <script src="/admin/js/admin.js?v=20261025_7"></script>
+  <script src="/admin/js/admin.js?v=20261025_8"></script>
 </body>
 </html>

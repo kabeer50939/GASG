@@ -128,6 +128,18 @@
       saveStaticDb('SETTINGS_UPDATED', 'Updated Header & Site Settings');
       return { success: true };
     }
+    if (url === '/api/auth/password' && method === 'PUT') {
+      const idx = (dbObj.admins || []).findIndex((u) => u.username === adminUser.username);
+      if (idx !== -1) {
+        const currentPass = dbObj.admins[idx].password || 'GasgAdmin@114272';
+        if (body.currentPassword && body.currentPassword !== currentPass) {
+          throw new Error('Current password is incorrect.');
+        }
+        dbObj.admins[idx].password = body.newPassword;
+      }
+      saveStaticDb('PASSWORD_UPDATED', 'Updated administrator password');
+      return { success: true };
+    }
     if (url === '/api/admin/database/backup-config' && method === 'PUT') {
       dbObj.settings.local_backup_path = body.local_backup_path;
       saveStaticDb('LOCAL_DB_BACKUP_LINKED', body.local_backup_path);
@@ -180,7 +192,16 @@
     return { success: true };
   }
 
+  const isStaticHost = window.location.hostname.endsWith('.hf.space') || window.location.hostname.endsWith('huggingface.co');
+
   async function api(url, method = 'GET', body = null) {
+    if (isStaticHost) {
+      const staticRes = await handleStaticHostApi(url, method, body);
+      if (method !== 'GET' && state.browserFileHandle) {
+        syncBrowserLinkedFileHandle();
+      }
+      return staticRes;
+    }
     const opts = {
       method,
       headers: {},
@@ -199,7 +220,7 @@
       return staticRes;
     }
     if (res.status === 401) {
-      window.location.href = '/admin/login';
+      window.location.href = '/admin/login.html';
       throw new Error('Session expired.');
     }
     const data = await res.json();
@@ -212,15 +233,132 @@
     return data;
   }
 
+  async function buildBackupFileBlob() {
+    if (!isStaticHost) {
+      try {
+        const res = await fetch('/api/admin/database/download', { credentials: 'same-origin' });
+        if (res.ok) {
+          return await res.blob();
+        }
+      } catch (_) {}
+    }
+    const dbObj = await getStaticMasterDb();
+    const jsonMarker = '\n/*GASG_PORTAL_BACKUP_JSON_START*/' + JSON.stringify(dbObj) + '/*GASG_PORTAL_BACKUP_JSON_END*/';
+    try {
+      const baseRes = await fetch('/data/gasg_portal.sqlite');
+      if (baseRes.ok) {
+        const baseBuf = await baseRes.arrayBuffer();
+        return new Blob([baseBuf, jsonMarker], { type: 'application/x-sqlite3' });
+      }
+    } catch (_) {}
+    return new Blob(['SQLite format 3\0' + jsonMarker], { type: 'application/x-sqlite3' });
+  }
+
+  async function loadSqlJsFromCdn() {
+    if (window.initSqlJs) {
+      return window.initSqlJs({
+        locateFile: (file) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+      });
+    }
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js';
+      s.onload = () => {
+        window
+          .initSqlJs({
+            locateFile: (file) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
+          })
+          .then(resolve)
+          .catch(reject);
+      };
+      s.onerror = () => reject(new Error('Could not load SQLite parser'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function parseBackupFileInBrowser(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const text = new TextDecoder('utf-8', { fatal: false }).decode(arrayBuffer);
+
+    const startTag = '/*GASG_PORTAL_BACKUP_JSON_START*/';
+    const endTag = '/*GASG_PORTAL_BACKUP_JSON_END*/';
+    const sIdx = text.lastIndexOf(startTag);
+    const eIdx = text.lastIndexOf(endTag);
+    if (sIdx !== -1 && eIdx !== -1 && eIdx > sIdx) {
+      const jsonStr = text.slice(sIdx + startTag.length, eIdx);
+      const parsed = JSON.parse(jsonStr);
+      if (parsed && parsed.settings) return parsed;
+    }
+
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && parsed.settings) return parsed;
+      } catch (_) {}
+    }
+
+    if (text.startsWith('SQLite format 3')) {
+      const SQL = await loadSqlJsFromCdn();
+      const sqlDb = new SQL.Database(new Uint8Array(arrayBuffer));
+      try {
+        const queryAll = (sql) => {
+          try {
+            const res = sqlDb.exec(sql);
+            if (!res || !res[0]) return [];
+            const cols = res[0].columns;
+            return res[0].values.map((row) => {
+              const obj = {};
+              cols.forEach((c, i) => (obj[c] = row[i]));
+              return obj;
+            });
+          } catch (_) {
+            return [];
+          }
+        };
+        const settingsRows = queryAll('SELECT setting_key, setting_value FROM site_settings');
+        if (!settingsRows.length) {
+          throw new Error('Uploaded SQLite file is missing G.A.S.G site_settings table.');
+        }
+        const settings = {};
+        settingsRows.forEach((r) => (settings[r.setting_key] = r.setting_value));
+        return {
+          settings,
+          missionPoints: queryAll('SELECT * FROM mission_points ORDER BY display_order ASC, id ASC'),
+          services: queryAll('SELECT * FROM services ORDER BY display_order ASC, id ASC'),
+          patientStats: queryAll('SELECT * FROM patient_stats ORDER BY stat_group ASC, display_order ASC, id ASC'),
+          disasters: queryAll('SELECT * FROM disasters_operations ORDER BY display_order ASC, id ASC'),
+          ambulances: queryAll('SELECT * FROM ambulances ORDER BY display_order ASC, id ASC'),
+          teamMembers: queryAll('SELECT * FROM team_members ORDER BY hierarchy_level ASC, display_order ASC, id ASC'),
+          facilities: queryAll('SELECT * FROM facilities ORDER BY display_order ASC, id ASC'),
+          medicalInventory: queryAll('SELECT * FROM medical_inventory ORDER BY camp_name ASC, serial_no ASC, id ASC'),
+          projectsDemands: queryAll('SELECT * FROM projects_demands ORDER BY item_type ASC, display_order ASC, id ASC'),
+          gallery: queryAll('SELECT * FROM gallery_items ORDER BY display_order ASC, id ASC'),
+          contactMessages: queryAll('SELECT * FROM contact_messages ORDER BY id DESC'),
+          admins: queryAll('SELECT id, username, full_name, role FROM admins ORDER BY id ASC'),
+          auditLogs: queryAll('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 100')
+        };
+      } finally {
+        sqlDb.close();
+      }
+    }
+
+    throw new Error('Invalid backup file. Please select a valid G.A.S.G (.sqlite, .db, or .json) backup file.');
+  }
+
   async function syncBrowserLinkedFileHandle() {
     if (!state.browserFileHandle) return;
     try {
-      const res = await fetch('/api/admin/database/download', { credentials: 'same-origin' });
-      if (!res.ok) return;
-      const blob = await res.blob();
+      const blob = await buildBackupFileBlob();
       const writable = await state.browserFileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
+      const dbObj = await getStaticMasterDb();
+      const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      dbObj.settings.local_backup_path = state.browserFileHandle.name;
+      dbObj.settings.local_backup_last_sync = nowStr;
+      dbObj.settings.local_backup_status = `Synced in-place (${formatBytes(blob.size)})`;
+      localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
     } catch (_err) {
       // Browser file handle write ignored if permission revoked
     }
@@ -1249,7 +1387,7 @@
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await api('/api/auth/logout', 'POST');
-      window.location.href = '/admin/login';
+      window.location.href = isStaticHost ? '/admin/login.html' : '/admin/login';
     });
 
     // Restore Official PPTX Data
@@ -1282,7 +1420,7 @@
           return;
         }
         try {
-          const res = await api('/api/admin/database/backup-config', 'PUT', { local_backup_path: pathVal });
+          await api('/api/admin/database/backup-config', 'PUT', { local_backup_path: pathVal });
           showToast(`Auto-save file connected & updated!`);
           if (manualBackupPathWrap) manualBackupPathWrap.classList.add('hidden');
           await refreshDashboard();
@@ -1303,15 +1441,14 @@
               types: [
                 {
                   description: 'Database Backup File',
-                  accept: { 'application/x-sqlite3': ['.sqlite', '.db'] }
+                  accept: { 'application/x-sqlite3': ['.sqlite', '.db', '.json'] }
                 }
               ]
             });
             state.browserFileHandle = handle;
             await syncBrowserLinkedFileHandle();
             showToast(`Connected "${handle.name}" — it will now update automatically on every change!`);
-            const targetText = document.getElementById('backupTargetText');
-            if (targetText) targetText.textContent = handle.name;
+            await refreshDashboard();
           } catch (_err) {
             // User cancelled picker
           }
@@ -1326,8 +1463,27 @@
     // Standalone Database Download Button
     const downloadBtn1 = document.getElementById('downloadStandaloneDbBtn');
     if (downloadBtn1) {
-      downloadBtn1.addEventListener('click', () => {
-        window.location.href = '/api/admin/database/download';
+      downloadBtn1.addEventListener('click', async () => {
+        const origHtml = downloadBtn1.innerHTML;
+        downloadBtn1.disabled = true;
+        downloadBtn1.textContent = 'Preparing Backup File...';
+        try {
+          const blob = await buildBackupFileBlob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'gasg_standalone_database.sqlite';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          showToast('Backup file (gasg_standalone_database.sqlite) downloaded to your computer!');
+        } catch (err) {
+          showToast(err.message || 'Could not download backup file.', true);
+        } finally {
+          downloadBtn1.disabled = false;
+          downloadBtn1.innerHTML = origHtml;
+        }
       });
     }
 
@@ -1360,19 +1516,50 @@
           showToast('Please select a backup file first.', true);
           return;
         }
+        const file = uploadBackupInput.files[0];
         const submitBtn = document.getElementById('restoreBackupSubmitBtn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Restoring Website Data...';
         try {
-          const fd = new FormData();
-          fd.append('backupFile', uploadBackupInput.files[0]);
-          const res = await fetch('/api/admin/database/restore', {
-            method: 'POST',
-            body: fd,
-            credentials: 'same-origin'
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed to restore backup file.');
+          let restoredOnServer = false;
+          if (!isStaticHost) {
+            try {
+              const fd = new FormData();
+              fd.append('backupFile', file);
+              const res = await fetch('/api/admin/database/restore', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin'
+              });
+              if (res.status !== 404 && res.status !== 405) {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to restore backup file.');
+                restoredOnServer = true;
+              }
+            } catch (serverErr) {
+              if (!isStaticHost && serverErr.message && !serverErr.message.includes('Unexpected token')) {
+                throw serverErr;
+              }
+            }
+          }
+
+          if (!restoredOnServer) {
+            const restoredData = await parseBackupFileInBrowser(file);
+            const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+            if (!restoredData.settings) restoredData.settings = {};
+            restoredData.settings.local_backup_last_sync = nowStr;
+            restoredData.settings.local_backup_status = `Restored from ${file.name}`;
+            if (!restoredData.auditLogs) restoredData.auditLogs = [];
+            restoredData.auditLogs.unshift({
+              id: Date.now(),
+              admin_username: (state.admin && state.admin.username) || 'admin',
+              action: 'DATABASE_BACKUP_RESTORED',
+              details: `Restored backup file: ${file.name} (${formatBytes(file.size)})`,
+              created_at: nowStr
+            });
+            localStorage.setItem('gasg_master_db_v1', JSON.stringify(restoredData));
+          }
+
           if (state.browserFileHandle) {
             await syncBrowserLinkedFileHandle();
           }
