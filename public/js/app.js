@@ -501,6 +501,10 @@ function renderTeamSection(data) {
 const team = data.teamMembers || [];
 const container = document.getElementById('teamProfileGrid');
 if (!container) return;
+if (!team.length) {
+container.innerHTML = '<p class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2.5rem 1rem; font-size: 1.05rem;">No team members are currently listed.</p>';
+return;
+}
 container.innerHTML = team
 .map((m) => {
 const displayName = m.member_name && m.member_name.trim() ? m.member_name.trim() : m.role_title;
