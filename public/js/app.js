@@ -62,15 +62,39 @@ const loader = document.getElementById('portalLoader');
 const main = document.getElementById('portalMain');
 try {
 let data = null;
-const isStaticHost = window.location.hostname.endsWith('.hf.space') || window.location.hostname.endsWith('huggingface.co');
-if (!isStaticHost) {
+const cacheBuster = `_t=${Date.now()}`;
+
+// 1. Try Live Server API First (Network-first, bypasses browser & proxy cache)
 try {
-const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
+const res = await fetch(`/api/public/portal-data?${cacheBuster}`, {
+cache: 'no-store',
+headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+});
 if (res.ok) {
-data = await res.json();
+const json = await res.json();
+if (json && json.settings) {
+data = json;
+}
+}
+} catch (_) {}
+
+// 2. Fallback to fresh portal_data.json (for static hosting or when API endpoint is unavailable)
+if (!data) {
+try {
+const fallbackRes = await fetch(`/data/portal_data.json?${cacheBuster}`, {
+cache: 'no-store',
+headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+});
+if (fallbackRes.ok) {
+const json = await fallbackRes.json();
+if (json && json.settings) {
+data = json;
+}
 }
 } catch (_) {}
 }
+
+// 3. Offline PWA Fallback: If both network requests failed (e.g. no internet connectivity)
 if (!data) {
 const localRaw = localStorage.getItem('gasg_master_db_v1');
 if (localRaw) {
@@ -78,15 +102,15 @@ try {
 data = JSON.parse(localRaw);
 } catch (_) {}
 }
-if (!data) {
-const fallbackRes = await fetch('/data/portal_data.json');
-if (!fallbackRes.ok) throw new Error('Failed to load portal data');
-data = await fallbackRes.json();
+} else {
+// Update local cache with fresh data for future offline PWA support
 try {
 localStorage.setItem('gasg_master_db_v1', JSON.stringify(data));
 } catch (_) {}
 }
-}
+
+if (!data) throw new Error('Failed to load portal data');
+
 portalState.data = data;
 portalState.renderedSections.clear();
 renderHeaderAndFooter(data);
@@ -840,7 +864,9 @@ return window.matchMedia('(display-mode: standalone)').matches || window.navigat
 function setupPwaInstall() {
 if ('serviceWorker' in navigator) {
 window.addEventListener('load', () => {
-navigator.serviceWorker.register('/sw.js').catch(() => {});
+navigator.serviceWorker.register('/sw.js').then((reg) => {
+reg.update().catch(() => {});
+}).catch(() => {});
 });
 }
 const banner = document.getElementById('pwaInstallBanner');

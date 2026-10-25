@@ -120,10 +120,22 @@ function request(server, method, urlPath, body = null, headers = {}) {
 
     const publicAfterUpdate = await request(server, 'GET', '/api/public/portal-data');
     assert.strictEqual(publicAfterUpdate.body.settings.contact_phone, '086-4210000');
+    assert.ok(publicAfterUpdate.headers['cache-control'].includes('no-store'), 'Portal data API must disable caching');
+
+    // Verify static portal_data.json was auto-exported with the update
+    const jsonOnDisk = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'portal_data.json'), 'utf8'));
+    assert.strictEqual(jsonOnDisk.settings.contact_phone, '086-4210000', 'Static portal_data.json must auto-sync on admin update');
+
+    // Verify cache prevention headers on static JSON and sw.js
+    const staticJsonRes = await request(server, 'GET', '/data/portal_data.json');
+    assert.ok(staticJsonRes.headers['cache-control'].includes('no-store'), 'Static portal_data.json must have no-store cache header');
+
+    const swRes = await request(server, 'GET', '/sw.js');
+    assert.ok(swRes.headers['cache-control'].includes('no-store'), 'Service Worker must have no-store cache header');
 
     // Restore empty contact_phone so no unverified phone remains
     await request(server, 'PUT', '/api/admin/settings', { contact_phone: '' }, authHeader);
-    console.log('[PASS] Sprint 3 & 5: Admin settings changes reflect immediately on Public Portal');
+    console.log('[PASS] Sprint 3 & 5: Admin settings changes reflect immediately on Public Portal & auto-sync to disk');
 
     // Verify Linked Local Database Auto-Backup & Standalone Download
     const linkedBackupFile = path.join(__dirname, '..', 'data', 'gasg_linked_local_backup.sqlite');

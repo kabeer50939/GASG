@@ -192,16 +192,7 @@
     return { success: true };
   }
 
-  const isStaticHost = window.location.hostname.endsWith('.hf.space') || window.location.hostname.endsWith('huggingface.co');
-
   async function api(url, method = 'GET', body = null) {
-    if (isStaticHost) {
-      const staticRes = await handleStaticHostApi(url, method, body);
-      if (method !== 'GET' && state.browserFileHandle) {
-        syncBrowserLinkedFileHandle();
-      }
-      return staticRes;
-    }
     const opts = {
       method,
       headers: {},
@@ -211,37 +202,46 @@
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);
     }
-    const res = await fetch(url, opts);
-    if (res.status === 404 || res.status === 405) {
+    try {
+      const res = await fetch(url, opts);
+      if (res.status === 404 || res.status === 405) {
+        const staticRes = await handleStaticHostApi(url, method, body);
+        if (method !== 'GET' && state.browserFileHandle) {
+          syncBrowserLinkedFileHandle();
+        }
+        return staticRes;
+      }
+      if (res.status === 401) {
+        window.location.href = '/admin/login.html';
+        throw new Error('Session expired.');
+      }
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Operation failed.');
+      }
+      if (method !== 'GET' && state.browserFileHandle) {
+        syncBrowserLinkedFileHandle();
+      }
+      return data;
+    } catch (err) {
+      if (err.message === 'Session expired.' || (err.message && !err.message.includes('fetch') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch') && !err.message.includes('Load failed'))) {
+        throw err;
+      }
       const staticRes = await handleStaticHostApi(url, method, body);
       if (method !== 'GET' && state.browserFileHandle) {
         syncBrowserLinkedFileHandle();
       }
       return staticRes;
     }
-    if (res.status === 401) {
-      window.location.href = '/admin/login.html';
-      throw new Error('Session expired.');
-    }
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Operation failed.');
-    }
-    if (method !== 'GET' && state.browserFileHandle) {
-      syncBrowserLinkedFileHandle();
-    }
-    return data;
   }
 
   async function buildBackupFileBlob() {
-    if (!isStaticHost) {
-      try {
-        const res = await fetch('/api/admin/database/download', { credentials: 'same-origin' });
-        if (res.ok) {
-          return await res.blob();
-        }
-      } catch (_) {}
-    }
+    try {
+      const res = await fetch('/api/admin/database/download', { credentials: 'same-origin' });
+      if (res.ok) {
+        return await res.blob();
+      }
+    } catch (_) {}
     const dbObj = await getStaticMasterDb();
     const jsonMarker = '\n/*GASG_PORTAL_BACKUP_JSON_START*/' + JSON.stringify(dbObj) + '/*GASG_PORTAL_BACKUP_JSON_END*/';
     try {
@@ -1387,7 +1387,7 @@
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await api('/api/auth/logout', 'POST');
-      window.location.href = isStaticHost ? '/admin/login.html' : '/admin/login';
+      window.location.href = '/admin/login.html';
     });
 
     // Restore Official PPTX Data
@@ -1522,24 +1522,22 @@
         submitBtn.textContent = 'Restoring Website Data...';
         try {
           let restoredOnServer = false;
-          if (!isStaticHost) {
-            try {
-              const fd = new FormData();
-              fd.append('backupFile', file);
-              const res = await fetch('/api/admin/database/restore', {
-                method: 'POST',
-                body: fd,
-                credentials: 'same-origin'
-              });
-              if (res.status !== 404 && res.status !== 405) {
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Failed to restore backup file.');
-                restoredOnServer = true;
-              }
-            } catch (serverErr) {
-              if (!isStaticHost && serverErr.message && !serverErr.message.includes('Unexpected token')) {
-                throw serverErr;
-              }
+          try {
+            const fd = new FormData();
+            fd.append('backupFile', file);
+            const res = await fetch('/api/admin/database/restore', {
+              method: 'POST',
+              body: fd,
+              credentials: 'same-origin'
+            });
+            if (res.status !== 404 && res.status !== 405) {
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || 'Failed to restore backup file.');
+              restoredOnServer = true;
+            }
+          } catch (serverErr) {
+            if (serverErr.message && !serverErr.message.includes('fetch') && !serverErr.message.includes('Unexpected token') && !serverErr.message.includes('Failed to fetch') && !serverErr.message.includes('Load failed')) {
+              throw serverErr;
             }
           }
 

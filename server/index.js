@@ -90,6 +90,20 @@ app.use('/admin', (req, res) => {
 // ============================================================================
 // PUBLIC PORTAL ROUTES
 // ============================================================================
+app.get('/data/portal_data.json', (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  return res.sendFile(path.join(publicDir, 'data', 'portal_data.json'), { etag: false, lastModified: false });
+});
+
+app.get('/sw.js', (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  return res.sendFile(path.join(publicDir, 'sw.js'), { etag: false, lastModified: false });
+});
+
 app.use(express.static(publicDir));
 
 app.get('/', (_req, res) => {

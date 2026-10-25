@@ -8,6 +8,7 @@ const {
   db,
   seedAuthenticData,
   syncLocalBackup,
+  exportPortalDataJson,
   getStandaloneDatabaseBuffer,
   restoreDatabaseFromFile,
   logAudit,
@@ -72,6 +73,9 @@ function registerApiRoutes(app) {
 
   app.get('/api/public/portal-data', (_req, res) => {
     try {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
       const data = getAllPublicPortalData();
       res.json(data);
     } catch (err) {
@@ -112,6 +116,23 @@ function registerApiRoutes(app) {
   // =========================================================================
   const adminRouter = express.Router();
   adminRouter.use(requireAdminAuth);
+
+  // Auto-sync portal_data.json and linked backup after every admin mutation
+  adminRouter.use((req, res, next) => {
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+      const originalJson = res.json.bind(res);
+      res.json = (body) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            exportPortalDataJson();
+            syncLocalBackup();
+          } catch (_) {}
+        }
+        return originalJson(body);
+      };
+    }
+    next();
+  });
 
   // Full Admin Dashboard & Complete CMS Dataset
   adminRouter.get('/dashboard', (_req, res) => {

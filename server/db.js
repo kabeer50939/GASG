@@ -913,15 +913,7 @@ function syncLocalBackup(overridePath = null) {
     }
 
     // Also export static JSON snapshot for Hugging Face Static Space compatibility
-    try {
-      const pubDataDir = path.join(__dirname, '..', 'public', 'data');
-      if (!fs.existsSync(pubDataDir)) fs.mkdirSync(pubDataDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(pubDataDir, 'portal_data.json'),
-        JSON.stringify(getAllPublicPortalData(), null, 2),
-        'utf8'
-      );
-    } catch (_) {}
+    exportPortalDataJson();
 
     return {
       synced: true,
@@ -933,6 +925,18 @@ function syncLocalBackup(overridePath = null) {
   } catch (err) {
     return { synced: false, error: err.message };
   }
+}
+
+function exportPortalDataJson() {
+  try {
+    const pubDataDir = path.join(__dirname, '..', 'public', 'data');
+    if (!fs.existsSync(pubDataDir)) fs.mkdirSync(pubDataDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(pubDataDir, 'portal_data.json'),
+      JSON.stringify(getAllPublicPortalData(), null, 2),
+      'utf8'
+    );
+  } catch (_) {}
 }
 
 function getStandaloneDatabaseBuffer() {
@@ -1085,6 +1089,7 @@ module.exports = {
   initSchema,
   seedAuthenticData,
   syncLocalBackup,
+  exportPortalDataJson,
   getStandaloneDatabaseBuffer,
   restoreDatabaseFromFile,
   logAudit,

@@ -1,11 +1,10 @@
-const CACHE_NAME = 'gasg-pwa-v1';
+const CACHE_NAME = 'gasg-pwa-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/css/styles.css',
   '/js/app.js',
-  '/data/portal_data.json',
   '/uploads/pptx/icon-192.png',
   '/uploads/pptx/icon-512.png'
 ];
@@ -29,6 +28,27 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
+  // Always bypass Service Worker cache for dynamic API endpoints
+  if (req.url.includes('/api/')) {
+    return;
+  }
+
+  // Always Network-First for dynamic data file so updates reflect immediately
+  if (req.url.includes('/data/portal_data.json')) {
+    event.respondWith(
+      fetch(req)
+        .then((networkRes) => {
+          if (networkRes && networkRes.status === 200) {
+            const clone = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+          }
+          return networkRes;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
 
   event.respondWith(
     fetch(req)
