@@ -912,6 +912,17 @@ function syncLocalBackup(overridePath = null) {
       fs.copyFileSync(dbPath, targetFile);
     }
 
+    // Also export static JSON snapshot for Hugging Face Static Space compatibility
+    try {
+      const pubDataDir = path.join(__dirname, '..', 'public', 'data');
+      if (!fs.existsSync(pubDataDir)) fs.mkdirSync(pubDataDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(pubDataDir, 'portal_data.json'),
+        JSON.stringify(getAllPublicPortalData(), null, 2),
+        'utf8'
+      );
+    } catch (_) {}
+
     return {
       synced: true,
       targetFile,

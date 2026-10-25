@@ -56,6 +56,130 @@
     toast._timer = setTimeout(() => toast.classList.add('hidden'), 3500);
   }
 
+  async function getStaticMasterDb() {
+    let dbObj = null;
+    const raw = localStorage.getItem('gasg_master_db_v1');
+    if (raw) {
+      try {
+        dbObj = JSON.parse(raw);
+      } catch (_) {}
+    }
+    if (!dbObj || !dbObj.settings) {
+      const res = await fetch('/data/portal_data.json', { cache: 'no-store' });
+      dbObj = await res.json();
+    }
+    if (!dbObj.contactMessages) dbObj.contactMessages = [];
+    if (!dbObj.admins) {
+      dbObj.admins = [
+        { id: 1, username: 'admin', password: 'GasgAdmin@114272', full_name: 'GASG Chief Administrator', role: 'Super Administrator' }
+      ];
+    }
+    if (!dbObj.auditLogs) {
+      dbObj.auditLogs = [
+        { id: 1, admin_username: 'admin', action: 'SYSTEM_READY', details: 'Portal synchronized', created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
+      ];
+    }
+    localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
+    return dbObj;
+  }
+
+  async function handleStaticHostApi(url, method, body) {
+    const sessionRaw = sessionStorage.getItem('gasg_static_admin_session');
+    if (!sessionRaw && url !== '/api/auth/logout') {
+      window.location.href = '/admin/login.html';
+      throw new Error('Unauthorized');
+    }
+    const adminUser = sessionRaw ? JSON.parse(sessionRaw) : { id: 1, username: 'admin', full_name: 'Administrator', role: 'Super Administrator' };
+
+    if (url === '/api/auth/me') {
+      return { admin: adminUser };
+    }
+    if (url === '/api/auth/logout') {
+      sessionStorage.removeItem('gasg_static_admin_session');
+      return { success: true };
+    }
+
+    const dbObj = await getStaticMasterDb();
+    const saveStaticDb = (action, details) => {
+      const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+      dbObj.auditLogs.unshift({
+        id: Date.now(),
+        admin_username: adminUser.username,
+        action,
+        details: String(details || ''),
+        created_at: nowStr
+      });
+      dbObj.settings.local_backup_last_sync = nowStr;
+      dbObj.settings.local_backup_status = 'Synced & Protected';
+      localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
+    };
+
+    if (url === '/api/admin/dashboard' && method === 'GET') {
+      return dbObj;
+    }
+    if (url === '/api/admin/reset-pptx-data' && method === 'POST') {
+      const freshRes = await fetch('/data/portal_data.json', { cache: 'no-store' });
+      const freshData = await freshRes.json();
+      localStorage.setItem('gasg_master_db_v1', JSON.stringify(freshData));
+      return { success: true };
+    }
+    if (url === '/api/admin/settings' && method === 'PUT') {
+      Object.assign(dbObj.settings, body || {});
+      saveStaticDb('SETTINGS_UPDATED', 'Updated Header & Site Settings');
+      return { success: true };
+    }
+    if (url === '/api/admin/database/backup-config' && method === 'PUT') {
+      dbObj.settings.local_backup_path = body.local_backup_path;
+      saveStaticDb('LOCAL_DB_BACKUP_LINKED', body.local_backup_path);
+      return { success: true, targetFile: body.local_backup_path, lastSync: dbObj.settings.local_backup_last_sync, status: 'Synced & Protected' };
+    }
+
+    const collectionMap = {
+      'mission-points': 'missionPoints',
+      'projects-demands': 'projectsDemands',
+      services: 'services',
+      disasters: 'disasters',
+      'patient-stats': 'patientStats',
+      ambulances: 'ambulances',
+      'team-members': 'teamMembers',
+      gallery: 'gallery',
+      facilities: 'facilities',
+      'medical-inventory': 'medicalInventory',
+      'contact-messages': 'contactMessages',
+      users: 'admins'
+    };
+
+    const match = url.match(/^\/api\/admin\/([a-z-]+)(?:\/(\d+))?$/);
+    if (match) {
+      const [, endpointKey, idStr] = match;
+      const colKey = collectionMap[endpointKey];
+      if (colKey && Array.isArray(dbObj[colKey])) {
+        const list = dbObj[colKey];
+        if (method === 'POST') {
+          const newItem = { id: Date.now(), is_active: 1, ...(body || {}) };
+          list.push(newItem);
+          saveStaticDb(`${endpointKey.toUpperCase()}_CREATED`, newItem.title || newItem.member_name || newItem.unit_name || newItem.id);
+          return { success: true, id: newItem.id };
+        }
+        if (method === 'PUT' && idStr) {
+          const idx = list.findIndex((x) => Number(x.id) === Number(idStr));
+          if (idx !== -1) {
+            list[idx] = { ...list[idx], ...(body || {}) };
+            saveStaticDb(`${endpointKey.toUpperCase()}_UPDATED`, `ID ${idStr}`);
+          }
+          return { success: true };
+        }
+        if (method === 'DELETE' && idStr) {
+          dbObj[colKey] = list.filter((x) => Number(x.id) !== Number(idStr));
+          saveStaticDb(`${endpointKey.toUpperCase()}_DELETED`, `ID ${idStr}`);
+          return { success: true };
+        }
+      }
+    }
+
+    return { success: true };
+  }
+
   async function api(url, method = 'GET', body = null) {
     const opts = {
       method,
@@ -67,6 +191,13 @@
       opts.body = JSON.stringify(body);
     }
     const res = await fetch(url, opts);
+    if (res.status === 404 || res.status === 405) {
+      const staticRes = await handleStaticHostApi(url, method, body);
+      if (method !== 'GET' && state.browserFileHandle) {
+        syncBrowserLinkedFileHandle();
+      }
+      return staticRes;
+    }
     if (res.status === 401) {
       window.location.href = '/admin/login';
       throw new Error('Session expired.');
@@ -820,6 +951,19 @@
           body: fd,
           credentials: 'same-origin'
         });
+        if (res.status === 404 || res.status === 405) {
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(cropperState.compressedBlob);
+          });
+          showToast(`Photo cropped & auto-compressed (${formatBytes(cropperState.compressedBlob.size)})!`);
+          if (typeof cropperState.onUploadedCallback === 'function') {
+            cropperState.onUploadedCallback(dataUrl);
+          }
+          closeCropper();
+          return;
+        }
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed.');
 

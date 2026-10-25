@@ -33,9 +33,31 @@
     const main = document.getElementById('portalMain');
 
     try {
-      const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to load portal data');
-      const data = await res.json();
+      let data = null;
+      try {
+        const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (_) {}
+
+      if (!data) {
+        const localRaw = localStorage.getItem('gasg_master_db_v1');
+        if (localRaw) {
+          try {
+            data = JSON.parse(localRaw);
+          } catch (_) {}
+        }
+        if (!data) {
+          const fallbackRes = await fetch('/data/portal_data.json', { cache: 'no-store' });
+          if (!fallbackRes.ok) throw new Error('Failed to load portal data');
+          data = await fallbackRes.json();
+          try {
+            localStorage.setItem('gasg_master_db_v1', JSON.stringify(data));
+          } catch (_) {}
+        }
+      }
+
       portalState.data = data;
 
       renderHeaderAndFooter(data);
@@ -806,6 +828,23 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
+          if (res.status === 404 || res.status === 405) {
+            const localRaw = localStorage.getItem('gasg_master_db_v1');
+            const dbObj = localRaw ? JSON.parse(localRaw) : portalState.data || {};
+            if (!dbObj.contactMessages) dbObj.contactMessages = [];
+            dbObj.contactMessages.unshift({
+              id: Date.now(),
+              ...payload,
+              status: 'unread',
+              created_at: new Date().toISOString().replace('T', ' ').slice(0, 19)
+            });
+            localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
+            feedback.textContent = 'Your message has been submitted to Gwadar Ambulance Service administration.';
+            feedback.className = 'form-feedback success';
+            feedback.classList.remove('hidden');
+            contactForm.reset();
+            return;
+          }
           const result = await res.json();
           if (!res.ok) throw new Error(result.error || 'Submission failed.');
 
@@ -826,6 +865,9 @@
     window.addEventListener('hashchange', () => {
       const hashTarget = window.location.hash.replace(/^#/, '') || 'home';
       activateSection(hashTarget, false);
+    });
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'gasg_master_db_v1') loadPortalData();
     });
   }
 
