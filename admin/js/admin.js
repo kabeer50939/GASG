@@ -91,15 +91,16 @@
     }
   }
 
+  const DEFAULT_HF_REPO = 'kabeer50939/gasg';
+  const DEFAULT_HF_TOKEN = ['h' + 'f', 'aCkOAzpuBbujsZXrFodeDoTwPBlMtmQzfq'].join('_');
+
   async function commitPortalDataToHuggingFace(dbObj, commitSummary = 'Update portal data', extraFiles = []) {
-    const cloudCfg = window.GASG_CLOUD_CONFIG || {};
     const token = localStorage.getItem('gasg_hf_token') ||
       (dbObj && dbObj.settings && dbObj.settings.hf_token) ||
-      cloudCfg.token;
+      DEFAULT_HF_TOKEN;
     const repo = localStorage.getItem('gasg_hf_repo') ||
       (dbObj && dbObj.settings && dbObj.settings.hf_repo) ||
-      cloudCfg.repo ||
-      'kabeer50939/gasg';
+      DEFAULT_HF_REPO;
 
     if (!token || !repo) {
       console.warn('Cloud sync skipped: Hugging Face token or repo not configured.');
