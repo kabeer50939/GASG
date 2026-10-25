@@ -76,7 +76,7 @@ function registerAuthRoutes(app) {
 
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
       maxAge: 12 * 60 * 60 * 1000,
       path: '/'

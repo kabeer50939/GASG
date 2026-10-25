@@ -3,7 +3,8 @@ title: Gwadar Ambulance Service Gwadar
 emoji: 🚑
 colorFrom: red
 colorTo: blue
-sdk: static
+sdk: docker
+app_port: 7860
 pinned: false
 ---
 

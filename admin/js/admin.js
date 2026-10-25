@@ -193,11 +193,15 @@
   }
 
   async function api(url, method = 'GET', body = null) {
+    const token = sessionStorage.getItem('gasg_auth_token');
     const opts = {
       method,
       headers: {},
       credentials: 'same-origin'
     };
+    if (token) {
+      opts.headers['Authorization'] = `Bearer ${token}`;
+    }
     if (body) {
       opts.headers['Content-Type'] = 'application/json';
       opts.body = JSON.stringify(body);

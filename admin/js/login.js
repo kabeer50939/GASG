@@ -60,6 +60,9 @@
         if (!res.ok) {
           throw new Error(data.error || 'Authentication failed.');
         }
+        if (data.token) {
+          sessionStorage.setItem('gasg_auth_token', data.token);
+        }
         window.location.href = '/admin';
       } catch (err) {
         errBox.textContent = err.message || 'Invalid credentials.';
