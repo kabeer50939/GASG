@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gwadar Ambulance Service, Gwadar (G.A.S.G) | Emergency Medical Services</title>
+  <meta name="description" content="Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust (Reg No: Bcra-114272) - 24/7 Emergency Medical Services, Patient Transport, Mortuary & Community Welfare." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css?v=20261025_5" />
+</head>
+<body>
+  <header class="site-header" id="siteHeader">
+    <div class="header-container">
+      <div class="header-top-row">
+        <a href="#home" class="brand-identity" data-nav="home" aria-label="Home">
+          <img src="/uploads/pptx/image5.png" alt="Gwadar Ambulance Service Logo" class="header-brand-logo" id="headerLogoImg" />
+          <div class="brand-text">
+            <h1 class="brand-title" id="headerTitle">GWADAR AMBULANCE SERVICE, GWADAR</h1>
+            <p class="brand-subtitle" id="headerSubtitle">Bin Ahsaan Welfare Trust &bull; Emergency Medical Services (Reg No: Bcra-114272)</p>
+          </div>
+        </a>
+
+        <div class="header-meta-right">
+          <button type="button" class="mobile-menu-toggle" id="mobileMenuBtn" aria-label="Toggle Navigation Menu" aria-expanded="false">
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+          </button>
+        </div>
+      </div>
+
+      <hr class="header-divider" />
+
+      <nav class="header-nav" id="headerNav" aria-label="Primary Navigation">
+        <ul class="nav-list">
+          <li><a href="#home" class="nav-link active" data-nav="home">Home</a></li>
+          <li><a href="#about" class="nav-link" data-nav="about">About Us</a></li>
+          <li><a href="#services" class="nav-link" data-nav="services">Services</a></li>
+          <li><a href="#ambulances" class="nav-link" data-nav="ambulances">Ambulances</a></li>
+          <li><a href="#team" class="nav-link" data-nav="team">Our Team</a></li>
+          <li><a href="#gallery" class="nav-link" data-nav="gallery">Gallery</a></li>
+          <li><a href="#facilities" class="nav-link" data-nav="facilities">Facilities</a></li>
+          <li><a href="#contact" class="nav-link" data-nav="contact">Contact Us</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div id="portalLoader" class="portal-loader">
+    <div class="loader-spinner"></div>
+    <p>Loading Gwadar Ambulance Service Portal...</p>
+  </div>
+
+  <!-- Main Content (100% Populated from Admin Panel Database API) -->
+  <main id="portalMain" class="portal-main hidden">
+    <!-- 1. HOME SECTION (Shows ONLY Home content when Home tab is active) -->
+    <section id="home" class="portal-section active-section">
+      <div class="hero-section">
+        <div class="hero-backdrop" id="heroBackdrop"></div>
+        <div class="container hero-container">
+          <div class="hero-content">
+            <div class="hero-badges">
+              <span class="badge badge-red" id="heroHoursBadge">24/7 Hours Service</span>
+              <span class="badge badge-outline" id="heroRegBadge">Registration No: Bcra-114272</span>
+              <span class="badge badge-outline" id="heroEstBadge">Since 1st January, 2022</span>
+            </div>
+            <h2 class="hero-heading" id="heroOrgName">Gwadar Ambulance Service Gwadar &amp; Bin Ahsaan Welfare Trust</h2>
+            <p class="hero-slogan" id="heroSlogan">“Saving a life is protection of humanity”</p>
+            <p class="hero-description" id="heroVision"></p>
+            <div class="hero-actions">
+              <a href="#services" class="btn btn-primary" data-nav="services">Explore Our Services</a>
+              <a href="#ambulances" class="btn btn-secondary" data-nav="ambulances">View Ambulance Fleet</a>
+              <a href="#contact" class="btn btn-secondary" data-nav="contact">Contact &amp; Coordination</a>
+            </div>
+          </div>
+          <div class="hero-emblem-card">
+            <img id="heroLogoImg" src="/uploads/pptx/image5.png" alt="Gwadar Ambulance Service Official Logo" class="hero-emblem-img" />
+            <div class="hero-emblem-caption">
+              <strong id="heroShortName">G.A.S.G</strong>
+              <span id="heroDurationText">4 Years and 5 Months of Free Service</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Impact Metrics Strip -->
+        <div class="container metrics-strip" id="heroMetricsStrip"></div>
+      </div>
+
+      <!-- Home Executive Summary & Section Directory (Dynamically populated from Admin data) -->
+      <div class="section-padded">
+        <div class="container">
+          <div class="home-directory-grid" id="homeDirectoryGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. ABOUT US SECTION -->
+    <section id="about" class="portal-section section-padded">
+      <div class="container">
+        <div class="about-grid">
+          <div class="about-card history-card">
+            <div class="card-tag">Established 1st January, 2022</div>
+            <h3 id="historyTitle">History</h3>
+            <div id="historyContent" class="prose-text"></div>
+            <div class="about-meta-boxes">
+              <div class="meta-box">
+                <span class="meta-label">Trust &amp; Service</span>
+                <strong id="metaOrgName"></strong>
+              </div>
+              <div class="meta-box">
+                <span class="meta-label">Registration No.</span>
+                <strong id="metaRegNo"></strong>
+              </div>
+              <div class="meta-box">
+                <span class="meta-label">Primary Coverage</span>
+                <strong id="metaAreas"></strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="about-card vision-mission-card">
+            <div class="slogan-banner">
+              <span class="slogan-label">Our Motto / Slogan</span>
+              <blockquote id="aboutSlogan"></blockquote>
+            </div>
+
+            <div class="vision-block">
+              <h3>Our Vision</h3>
+              <p id="aboutVision"></p>
+            </div>
+
+            <div class="mission-block">
+              <h3>Our Mission</h3>
+              <ul class="mission-list" id="missionList"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proposed Projects & Institutional Demands (Slides 14-18) -->
+        <div class="projects-demands-wrapper" id="projectsDemandsWrapper">
+          <div class="pd-column">
+            <h3 class="subsection-heading">New Proposed Projects</h3>
+            <div id="proposedProjectsList" class="pd-cards-stack"></div>
+          </div>
+          <div class="pd-column">
+            <h3 class="subsection-heading">Institutional Requests &amp; Demands</h3>
+            <div id="institutionalDemandsList" class="pd-cards-stack"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. SERVICES SECTION (Services + Service Area Map + Patient Stats + Disasters) -->
+    <section id="services" class="portal-section section-padded section-alt">
+      <div class="container">
+        <div class="services-grid" id="servicesGrid"></div>
+
+        <!-- Service Area Map & Patient Statistics Breakdown (Slides 6, 7, 8) -->
+        <div class="stats-map-section">
+          <div class="map-card">
+            <div class="map-card-header">
+              <h3>Services Area Map — Gwadar &amp; Adjoining Districts</h3>
+              <span class="badge badge-outline">Gwadar • Jiwani • Pasni • Ormara • Kech</span>
+            </div>
+            <div class="map-img-frame">
+              <img id="serviceAreaMapImg" src="/uploads/pptx/image6.jpg" alt="Map of Gwadar District Services Area" class="zoomable-img" />
+            </div>
+          </div>
+
+          <div class="patient-stats-panel">
+            <div class="stats-panel-card">
+              <div class="stats-panel-head">
+                <h3>Regional Patient Distribution</h3>
+                <span class="total-pill" id="regionalTotalPill">Total: 4,225 Patients</span>
+              </div>
+              <div id="regionalStatsList" class="stat-bars-list"></div>
+            </div>
+
+            <div class="stats-panel-card">
+              <div class="stats-panel-head">
+                <h3>Case-Wise Patient Distribution</h3>
+                <span class="total-pill" id="caseWiseTotalPill">Total: 4,225 Patients</span>
+              </div>
+              <div id="caseWiseStatsList" class="stat-bars-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disasters & Community Operations in Gwadar (Slides 13, 19, 20, 21) -->
+        <div class="disasters-subsection">
+          <div class="subsection-title-bar">
+            <h3>Disaster Relief, Flood Rescues &amp; Community Operations</h3>
+            <p>Documented emergency rescue operations and community welfare milestones in Gwadar District.</p>
+          </div>
+          <div class="disasters-grid" id="disastersGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. AMBULANCES SECTION -->
+    <section id="ambulances" class="portal-section section-padded">
+      <div class="container">
+        <div class="ambulances-grid" id="ambulancesGrid"></div>
+      </div>
+    </section>
+
+    <!-- 5. OUR TEAM SECTION (Profile boxes: Photo, Name & Occupation Only) -->
+    <section id="team" class="portal-section section-padded section-alt">
+      <div class="container">
+        <div class="team-profile-grid" id="teamProfileGrid"></div>
+      </div>
+    </section>
+
+    <!-- 6. GALLERY SECTION -->
+    <section id="gallery" class="portal-section section-padded">
+      <div class="container">
+        <div class="gallery-filters" id="galleryFilters"></div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+    </section>
+
+    <!-- 7. FACILITIES SECTION (Facilities + Mortuary Table + Medical Camp Inventories) -->
+    <section id="facilities" class="portal-section section-padded section-alt">
+      <div class="container">
+        <div class="facilities-grid" id="facilitiesGrid"></div>
+
+        <!-- Mortuary & Ritual Washing Data Table (Slide 9) -->
+        <div class="mortuary-summary-box" id="mortuarySummaryBox">
+          <h3 class="subsection-heading">Mortuary, Ritual Washing &amp; Shrouding of the Deceased Record</h3>
+          <div class="mortuary-cards-row" id="mortuaryStatsRow"></div>
+        </div>
+
+        <!-- Medical Camp Inventory Tables (Slides 10, 11, 12) -->
+        <div class="medical-inventory-box">
+          <div class="inventory-header-row">
+            <div>
+              <h3 class="subsection-heading">Medical Camps &amp; Emergency Medicine Inventory</h3>
+              <p class="inventory-sub">Official medicine and medical equipment records from Ethqaf Medicine Gwadar &amp; Gwadar Ejthama Medicine (15–17 Sep 2023).</p>
+            </div>
+            <div class="inventory-controls">
+              <div class="camp-tabs" id="campTabs"></div>
+              <input type="search" id="inventorySearchInput" class="inventory-search" placeholder="Search medicine or item..." aria-label="Search medicine inventory" />
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="inventory-table">
+              <thead>
+                <tr>
+                  <th>S No.</th>
+                  <th>Camp / Program</th>
+                  <th>Name of Items</th>
+                  <th>Quantity</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. CONTACT US SECTION -->
+    <section id="contact" class="portal-section section-padded">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-info-card">
+            <div class="contact-brand-row">
+              <img src="/uploads/pptx/image5.png" alt="GASG Logo" class="contact-logo" id="contactLogo" />
+              <div>
+                <h3 id="contactOrgTitle">Gwadar Ambulance Service, Gwadar</h3>
+                <p id="contactRegSubtitle">Registration No: Bcra-114272</p>
+              </div>
+            </div>
+
+            <p class="contact-notice" id="contactNoticeText"></p>
+
+            <div class="contact-details-list" id="contactDetailsList"></div>
+          </div>
+
+          <div class="contact-form-card">
+            <h3>Send an Official Inquiry or Request</h3>
+            <p class="form-helper">Submit your message directly to the Gwadar Ambulance Service administration.</p>
+            <form id="publicContactForm" novalidate>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="senderName">Full Name *</label>
+                  <input type="text" id="senderName" name="sender_name" required placeholder="Enter your full name" />
+                </div>
+                <div class="form-group">
+                  <label for="senderPhone">Phone / Contact Number *</label>
+                  <input type="tel" id="senderPhone" name="sender_phone" required placeholder="e.g., 03XX-XXXXXXX" />
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="senderEmail">Email Address (Optional)</label>
+                  <input type="email" id="senderEmail" name="sender_email" placeholder="your@email.com" />
+                </div>
+                <div class="form-group">
+                  <label for="messageType">Inquiry Category *</label>
+                  <select id="messageType" name="message_type">
+                    <option value="Emergency Service Coordination">Emergency Service Coordination</option>
+                    <option value="Mortuary & Ghusl Services">Mortuary &amp; Ghusl Services</option>
+                    <option value="Community First-Aid & Awareness Session">Community First-Aid &amp; Awareness Session</option>
+                    <option value="Grant / Fuel / Solarization Support">Grant / Fuel / Solarization Support</option>
+                    <option value="Jewni Expansion Project">Jewni Expansion Project</option>
+                    <option value="General Inquiry">General Inquiry</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="messageSubject">Subject *</label>
+                <input type="text" id="messageSubject" name="subject" required placeholder="Brief subject of your inquiry" />
+              </div>
+
+              <div class="form-group">
+                <label for="messageBody">Message Details *</label>
+                <textarea id="messageBody" name="message" rows="4" required placeholder="Provide complete details of your request or message..."></textarea>
+              </div>
+
+              <div id="contactFormFeedback" class="form-feedback hidden" role="status"></div>
+
+              <button type="submit" class="btn btn-primary btn-block" id="contactSubmitBtn">
+                Submit Message
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER (Strictly Public - Zero Unauthorized Admin Links) -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="footer-title-row">
+          <img src="/uploads/pptx/image5.png" alt="GASG" class="footer-logo" id="footerLogo" />
+          <div>
+            <h4 id="footerOrgName">Gwadar Ambulance Service, Gwadar</h4>
+            <p id="footerRegNo">Bin Ahsaan Welfare Trust • Reg No: Bcra-114272</p>
+          </div>
+        </div>
+        <p class="footer-slogan" id="footerSlogan">“Saving a life is protection of humanity”</p>
+      </div>
+
+      <div class="footer-nav-col">
+        <h5>Portal Sections</h5>
+        <ul class="footer-links">
+          <li><a href="#home" data-nav="home">Home</a></li>
+          <li><a href="#about" data-nav="about">About Us</a></li>
+          <li><a href="#services" data-nav="services">Services</a></li>
+          <li><a href="#ambulances" data-nav="ambulances">Ambulances</a></li>
+          <li><a href="#team" data-nav="team">Our Team</a></li>
+          <li><a href="#gallery" data-nav="gallery">Gallery</a></li>
+          <li><a href="#facilities" data-nav="facilities">Facilities</a></li>
+          <li><a href="#contact" data-nav="contact">Contact Us</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-service-col">
+        <h5>Service Coverage</h5>
+        <p id="footerCoverage">Gwadar City, Gwadar Surrounding Areas, District Kech &amp; Adjoining Areas</p>
+        <p class="footer-hours" id="footerHours">24/7 Round-the-Clock Emergency Medical Services since 1st January, 2022</p>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>&copy; <span id="footerYear">2026</span> <span id="footerCopyOrg">Gwadar Ambulance Service Gwadar &amp; Bin Ahsaan Welfare Trust</span>. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal for Gallery & Map Zoom -->
+  <div id="lightboxModal" class="lightbox-modal hidden" role="dialog" aria-modal="true" aria-label="Image Preview">
+    <button type="button" class="lightbox-close" id="lightboxCloseBtn" aria-label="Close Preview">&times;</button>
+    <div class="lightbox-content">
+      <img id="lightboxImg" src="" alt="" />
+      <div class="lightbox-caption">
+        <h4 id="lightboxTitle"></h4>
+        <p id="lightboxDesc"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=20261025_5"></script>
+</body>
+</html>

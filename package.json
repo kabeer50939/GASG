@@ -1,0 +1,28 @@
+{
+  "name": "gwadar-ambulance-service-portal",
+  "version": "1.0.0",
+  "description": "Official Website Portal & Secure Admin Panel for Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust (Reg No: Bcra-114272)",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node tests/full_integration.test.js"
+  },
+  "keywords": [
+    "gwadar",
+    "ambulance",
+    "emergency-medical-services",
+    "bin-ahsaan-welfare-trust",
+    "gasg"
+  ],
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2"
+  }
+}

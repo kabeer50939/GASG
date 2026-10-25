@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administrator Sign In | Gwadar Ambulance Service (G.A.S.G)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/css/admin.css" />
+</head>
+<body class="login-page-body">
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <img src="/uploads/pptx/image5.png" alt="GASG Emblem" class="login-logo" />
+        <span class="login-badge">Restricted Access • Authorized Personnel Only</span>
+        <h1>Gwadar Ambulance Service</h1>
+        <p>Bin Ahsaan Welfare Trust • Reg No: Bcra-114272</p>
+      </div>
+
+      <form id="adminLoginForm" class="login-form" novalidate>
+        <div class="form-group">
+          <label for="adminUsername">Administrator Username</label>
+          <input type="text" id="adminUsername" name="username" required autocomplete="username" placeholder="Enter admin username" />
+        </div>
+
+        <div class="form-group">
+          <label for="adminPassword">Password</label>
+          <div class="password-input-wrap">
+            <input type="password" id="adminPassword" name="password" required autocomplete="current-password" placeholder="Enter admin password" />
+            <button type="button" id="togglePassBtn" class="pass-toggle-btn" aria-label="Show or Hide Password">Show</button>
+          </div>
+        </div>
+
+        <div id="loginErrorBox" class="alert-box alert-error hidden" role="alert"></div>
+
+        <button type="submit" id="loginSubmitBtn" class="btn-admin btn-admin-primary btn-admin-block">
+          Sign In to Admin Panel
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <a href="/" class="back-public-link">&larr; Return to Public Website Portal</a>
+      </div>
+    </div>
+  </div>
+  <script src="/admin/js/login.js"></script>
+</body>
+</html>

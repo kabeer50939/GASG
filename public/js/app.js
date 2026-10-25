@@ -1,0 +1,838 @@
+(function () {
+  'use strict';
+
+  let portalState = {
+    data: null,
+    selectedGalleryCategory: 'All',
+    selectedCamp: 'All',
+    inventoryQuery: ''
+  };
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function formatNumber(n) {
+    const num = Number(n);
+    if (Number.isNaN(num)) return String(n ?? '');
+    return num.toLocaleString('en-US');
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val ?? '';
+  }
+
+  async function loadPortalData() {
+    const loader = document.getElementById('portalLoader');
+    const main = document.getElementById('portalMain');
+
+    try {
+      const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to load portal data');
+      const data = await res.json();
+      portalState.data = data;
+
+      renderHeaderAndFooter(data);
+      renderHeroSection(data);
+      renderAboutSection(data);
+      renderServicesSection(data);
+      renderAmbulancesSection(data);
+      renderTeamSection(data);
+      renderGallerySection(data);
+      renderFacilitiesSection(data);
+      renderContactSection(data);
+
+      if (loader) loader.classList.add('hidden');
+      if (main) main.classList.remove('hidden');
+    } catch (err) {
+      if (loader) {
+        loader.innerHTML = `<p style="color:#b91c1c;font-weight:600;">Unable to load portal data. Please refresh the page.</p>`;
+      }
+    }
+  }
+
+  function renderHeaderAndFooter(data) {
+    const s = data.settings || {};
+    setText('headerTitle', s.header_title || 'GWADAR AMBULANCE SERVICE, GWADAR');
+    setText(
+      'headerSubtitle',
+      s.header_subtitle || 'Bin Ahsaan Welfare Trust • Emergency Medical Services (Reg No: Bcra-114272)'
+    );
+
+    const headerLogo = document.getElementById('headerLogoImg');
+    if (headerLogo && s.logo_url) headerLogo.src = s.logo_url;
+
+    const footerLogo = document.getElementById('footerLogo');
+    if (footerLogo && s.logo_url) footerLogo.src = s.logo_url;
+
+    setText('footerOrgName', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
+    setText('footerRegNo', s.registration_no ? `Registration No: ${s.registration_no}` : '');
+    setText('footerSlogan', s.slogan ? `“${s.slogan}”` : '');
+    setText('footerCoverage', s.service_areas || '');
+    setText('footerHours', s.operating_hours || '');
+    setText('footerCopyOrg', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
+    setText('footerYear', new Date().getFullYear());
+  }
+
+  function renderHeroSection(data) {
+    const s = data.settings || {};
+    const stats = data.patientStats || [];
+
+    const backdrop = document.getElementById('heroBackdrop');
+    if (backdrop && s.hero_bg_url) {
+      backdrop.style.backgroundImage = `url('${encodeURI(s.hero_bg_url)}')`;
+    }
+
+    setText('heroHoursBadge', s.operating_hours || '24/7 Hours Service');
+    setText('heroRegBadge', s.registration_no ? `Registration No: ${s.registration_no}` : '');
+    setText('heroEstBadge', s.established_date ? `Established: ${s.established_date}` : '');
+    setText('heroOrgName', s.organization_name || '');
+    setText('heroSlogan', s.slogan ? `“${s.slogan}”` : '');
+    setText('heroVision', s.vision_text || '');
+    setText('heroShortName', s.short_name || 'G.A.S.G');
+    setText('heroDurationText', s.service_duration || '');
+
+    const heroLogo = document.getElementById('heroLogoImg');
+    if (heroLogo && s.logo_url) heroLogo.src = s.logo_url;
+
+    // Build Metrics Strip from authentic patientStats + settings
+    const regional = stats.filter((x) => x.stat_group === 'regional');
+    const caseWise = stats.filter((x) => x.stat_group === 'case_wise');
+    const totalRegional = regional.reduce((acc, item) => acc + (Number(item.count_value) || 0), 0);
+    const totalPatients = totalRegional || Number(s.total_patients_served) || 0;
+
+    const metricItems = [
+      {
+        value: formatNumber(totalPatients),
+        label: 'Total Patients Served',
+        sub: 'Gwadar City, Surrounding Areas & District Kech'
+      }
+    ];
+
+    for (const c of caseWise) {
+      metricItems.push({
+        value: formatNumber(c.count_value),
+        label: c.label,
+        sub: c.sub_details || 'Verified Case Record'
+      });
+    }
+
+    if (s.mortuary_total_bodies || s.ghusl_total_bodies) {
+      metricItems.push({
+        value: `${s.mortuary_total_bodies || 43} / ${s.ghusl_total_bodies || 26}`,
+        label: 'Mortuary & Ghusl Cases',
+        sub: '43 Mortuary Preserved • 26 Ritual Washings'
+      });
+    }
+
+    const strip = document.getElementById('heroMetricsStrip');
+    if (strip) {
+      strip.innerHTML = metricItems
+        .map(
+          (m) => `
+        <div class="metric-card">
+          <div class="metric-value">${escapeHtml(m.value)}</div>
+          <div class="metric-label">${escapeHtml(m.label)}</div>
+          <div class="metric-sub">${escapeHtml(m.sub)}</div>
+        </div>
+      `
+        )
+        .join('');
+    }
+
+    // Home Section Directory Cards (Dynamically derived from Admin data)
+    setText(
+      'homeIntroEyebrow',
+      `${s.registration_no ? `Reg No: ${s.registration_no} • ` : ''}${s.established_date ? `Established ${s.established_date}` : ''}`
+    );
+    setText('homeIntroTitle', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
+    setText('homeIntroText', s.vision_text || '');
+
+    const dirGrid = document.getElementById('homeDirectoryGrid');
+    if (dirGrid) {
+      const directoryCards = [
+        {
+          nav: 'about',
+          meta: `Established ${s.established_date || '1st January, 2022'}`,
+          title: 'About Us, Vision & Mission',
+          desc: `Read our official history, vision, ${(data.missionPoints || []).length} mission commitments, proposed projects, and institutional demands.`,
+          cta: 'Open About Us →'
+        },
+        {
+          nav: 'services',
+          meta: `${formatNumber(totalPatients)} Total Patients Served`,
+          title: 'Emergency Services & Statistics',
+          desc: `Explore ${(data.services || []).length} emergency medical & humanitarian services, regional & case-wise patient statistics, and disaster rescue operations.`,
+          cta: 'Open Services →'
+        },
+        {
+          nav: 'ambulances',
+          meta: `${(data.ambulances || []).length} Ambulance Units`,
+          title: 'Our Ambulance Fleet',
+          desc: 'View our 24/7 operational emergency ambulances serving Gwadar, Kech, and adjoining areas, plus the proposed Jewni expansion.',
+          cta: 'Open Ambulances →'
+        },
+        {
+          nav: 'team',
+          meta: `${(data.teamMembers || []).length} Organogram Roles`,
+          title: 'Our Team & Organogram',
+          desc: 'Inspect the complete organizational hierarchy from Chairman and Executive Leadership to Medical Officer, Gosal, and 24/7 Drivers.',
+          cta: 'Open Our Team →'
+        },
+        {
+          nav: 'gallery',
+          meta: `${(data.gallery || []).length} Official Photographs`,
+          title: 'Photo Gallery & Field Media',
+          desc: 'Browse authentic photographs from emergency operations, ambulance fleet, mortuary facilities, flood rescues, and community meetings.',
+          cta: 'Open Gallery →'
+        },
+        {
+          nav: 'facilities',
+          meta: `${(data.facilities || []).length} Facilities • ${(data.medicalInventory || []).length} Medicine Items`,
+          title: 'Facilities, Mortuary & Medicine Stock',
+          desc: 'View refrigerated mortuary chambers, ritual washing (Ghusl) records, and Ethqaf & Gwadar Ijtema medicine inventories.',
+          cta: 'Open Facilities →'
+        },
+        {
+          nav: 'contact',
+          meta: s.operating_hours || '24/7 Hours Service',
+          title: 'Contact & Coordination',
+          desc: 'Reach out to Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust for emergency coordination or community programs.',
+          cta: 'Open Contact Us →'
+        }
+      ];
+
+      dirGrid.innerHTML = directoryCards
+        .map(
+          (c) => `
+        <a href="#${escapeHtml(c.nav)}" class="home-dir-card" data-nav="${escapeHtml(c.nav)}">
+          <div>
+            <div class="home-dir-meta">${escapeHtml(c.meta)}</div>
+            <h3>${escapeHtml(c.title)}</h3>
+            <p>${escapeHtml(c.desc)}</p>
+          </div>
+          <span class="home-dir-link">${escapeHtml(c.cta)}</span>
+        </a>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function renderAboutSection(data) {
+    const s = data.settings || {};
+    const missions = data.missionPoints || [];
+    const pd = data.projectsDemands || [];
+
+    setText('aboutSubtitle', `${s.organization_name || ''} — Registration No: ${s.registration_no || ''}`);
+    setText('historyTitle', s.history_title || 'History');
+
+    const historyContainer = document.getElementById('historyContent');
+    if (historyContainer) {
+      const paragraphs = String(s.history_text || '')
+        .split(/\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      historyContainer.innerHTML = paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('');
+    }
+
+    setText('metaOrgName', s.organization_name || '');
+    setText('metaRegNo', s.registration_no || '');
+    setText('metaAreas', s.service_areas || '');
+    setText('aboutSlogan', s.slogan ? `“${s.slogan}”` : '');
+    setText('aboutVision', s.vision_text || '');
+
+    const missionList = document.getElementById('missionList');
+    if (missionList) {
+      missionList.innerHTML = missions
+        .map((m) => `<li>${escapeHtml(m.point_text)}</li>`)
+        .join('');
+    }
+
+    const projects = pd.filter((item) => item.item_type === 'project');
+    const demands = pd.filter((item) => item.item_type === 'demand');
+
+    const projEl = document.getElementById('proposedProjectsList');
+    if (projEl) {
+      projEl.innerHTML = projects
+        .map(
+          (p) => `
+        <div class="pd-card">
+          <h4>${escapeHtml(p.title)}</h4>
+          ${p.subtitle ? `<div class="pd-subtitle">${escapeHtml(p.subtitle)}</div>` : ''}
+          <p>${escapeHtml(p.description)}</p>
+        </div>
+      `
+        )
+        .join('');
+    }
+
+    const demEl = document.getElementById('institutionalDemandsList');
+    if (demEl) {
+      demEl.innerHTML = demands
+        .map(
+          (d) => `
+        <div class="pd-card demand-card">
+          <h4>${escapeHtml(d.title)}</h4>
+          ${d.subtitle ? `<div class="pd-subtitle">${escapeHtml(d.subtitle)}</div>` : ''}
+          <p>${escapeHtml(d.description)}</p>
+        </div>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function renderServicesSection(data) {
+    const s = data.settings || {};
+    const services = data.services || [];
+    const stats = data.patientStats || [];
+    const disasters = data.disasters || [];
+
+    const grid = document.getElementById('servicesGrid');
+    if (grid) {
+      grid.innerHTML = services
+        .map(
+          (svc) => `
+        <article class="service-card">
+          <div class="service-card-media">
+            ${
+              svc.image_url
+                ? `<img src="${escapeHtml(svc.image_url)}" alt="${escapeHtml(svc.title)}" loading="lazy" />`
+                : ''
+            }
+            <span class="service-cat-tag">${escapeHtml(svc.category)}</span>
+          </div>
+          <div class="service-card-body">
+            <h3>${escapeHtml(svc.title)}</h3>
+            <p>${escapeHtml(svc.description)}</p>
+            ${
+              svc.stats_badge
+                ? `<span class="service-stat-pill">${escapeHtml(svc.stats_badge)}</span>`
+                : ''
+            }
+          </div>
+        </article>
+      `
+        )
+        .join('');
+    }
+
+    const mapImg = document.getElementById('serviceAreaMapImg');
+    if (mapImg && s.map_url) {
+      mapImg.src = s.map_url;
+    }
+
+    // Regional & Case-Wise bars
+    const regional = stats.filter((x) => x.stat_group === 'regional');
+    const caseWise = stats.filter((x) => x.stat_group === 'case_wise');
+
+    const regTotal = regional.reduce((a, b) => a + (Number(b.count_value) || 0), 0) || 1;
+    const caseTotal = caseWise.reduce((a, b) => a + (Number(b.count_value) || 0), 0) || 1;
+
+    setText('regionalTotalPill', `Total: ${formatNumber(regTotal)} Patients`);
+    setText('caseWiseTotalPill', `Total: ${formatNumber(caseTotal)} Patients`);
+
+    const regEl = document.getElementById('regionalStatsList');
+    if (regEl) {
+      regEl.innerHTML = regional
+        .map((item) => {
+          const pct = Math.min(100, Math.round(((Number(item.count_value) || 0) / regTotal) * 100));
+          return `
+          <div class="stat-bar-item">
+            <div class="stat-bar-top">
+              <span>${escapeHtml(item.label)}</span>
+              <span class="stat-bar-count">${formatNumber(item.count_value)} (${pct}%)</span>
+            </div>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:${pct}%"></div>
+            </div>
+            ${item.sub_details ? `<div class="stat-bar-sub">${escapeHtml(item.sub_details)}</div>` : ''}
+          </div>
+        `;
+        })
+        .join('');
+    }
+
+    const caseEl = document.getElementById('caseWiseStatsList');
+    if (caseEl) {
+      caseEl.innerHTML = caseWise
+        .map((item) => {
+          const pct = Math.min(100, Math.round(((Number(item.count_value) || 0) / caseTotal) * 100));
+          return `
+          <div class="stat-bar-item">
+            <div class="stat-bar-top">
+              <span>${escapeHtml(item.label)}</span>
+              <span class="stat-bar-count">${formatNumber(item.count_value)} (${pct}%)</span>
+            </div>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:${pct}%"></div>
+            </div>
+            ${item.sub_details ? `<div class="stat-bar-sub">${escapeHtml(item.sub_details)}</div>` : ''}
+          </div>
+        `;
+        })
+        .join('');
+    }
+
+    const disGrid = document.getElementById('disastersGrid');
+    if (disGrid) {
+      disGrid.innerHTML = disasters
+        .map(
+          (d) => `
+        <article class="disaster-card">
+          ${
+            d.image_url
+              ? `<div class="disaster-media"><img src="${escapeHtml(d.image_url)}" alt="${escapeHtml(d.title)}" class="zoomable-img" loading="lazy" /></div>`
+              : ''
+          }
+          <div class="disaster-body">
+            <div class="disaster-meta">
+              <span>Date: ${escapeHtml(d.event_date)}</span>
+              <span>•</span>
+              <span>${escapeHtml(d.location)}</span>
+            </div>
+            <h4>${escapeHtml(d.title)}</h4>
+            <div class="disaster-impact">${escapeHtml(d.impact_summary)}</div>
+            <p>${escapeHtml(d.description)}</p>
+          </div>
+        </article>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function renderAmbulancesSection(data) {
+    const ambulances = data.ambulances || [];
+    const grid = document.getElementById('ambulancesGrid');
+    if (!grid) return;
+
+    grid.innerHTML = ambulances
+      .map((a) => {
+        const isProposed = String(a.status).toLowerCase().includes('proposed');
+        return `
+        <article class="ambulance-card">
+          <div class="ambulance-img-wrap">
+            ${
+              a.image_url
+                ? `<img src="${escapeHtml(a.image_url)}" alt="${escapeHtml(a.unit_name)}" class="zoomable-img" loading="lazy" />`
+                : ''
+            }
+            <span class="ambulance-status-badge ${isProposed ? 'proposed' : ''}">${escapeHtml(a.status)}</span>
+          </div>
+          <div class="ambulance-content">
+            <div class="ambulance-org-tag">${escapeHtml(a.organization_tag)}</div>
+            <div class="ambulance-title-row">
+              <h3>${escapeHtml(a.unit_name)}</h3>
+              ${a.vehicle_code ? `<span class="vehicle-plate">${escapeHtml(a.vehicle_code)}</span>` : ''}
+            </div>
+            <p class="ambulance-desc">${escapeHtml(a.description)}</p>
+            <div class="ambulance-specs">
+              <div><strong>Coverage Area:</strong> ${escapeHtml(a.coverage_area)}</div>
+              <div><strong>Equipment &amp; Capabilities:</strong> ${escapeHtml(a.equipment_summary)}</div>
+            </div>
+          </div>
+        </article>
+      `;
+      })
+      .join('');
+  }
+
+  function renderTeamSection(data) {
+    const team = data.teamMembers || [];
+    const container = document.getElementById('teamProfileGrid');
+    if (!container) return;
+
+    container.innerHTML = team
+      .map((m) => {
+        const displayName = m.member_name && m.member_name.trim() ? m.member_name.trim() : m.role_title;
+        const occupation = m.role_title || '';
+        return `
+        <article class="team-profile-box">
+          <div class="team-profile-photo">
+            ${
+              m.photo_url
+                ? `<img src="${escapeHtml(m.photo_url)}" alt="${escapeHtml(displayName)}" class="zoomable-img" loading="lazy" />`
+                : `
+                  <svg class="team-placeholder-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="40" cy="28" r="14" stroke="currentColor" stroke-width="3.5"/>
+                    <path d="M16 68C16 54.7452 26.7452 44 40 44C53.2548 44 64 54.7452 64 68" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+                  </svg>
+                `
+            }
+          </div>
+          <div class="team-profile-info">
+            <h3 class="team-profile-name">${escapeHtml(displayName)}</h3>
+            <p class="team-profile-occupation">${escapeHtml(occupation)}</p>
+          </div>
+        </article>
+      `;
+      })
+      .join('');
+  }
+
+  function renderGallerySection(data) {
+    const gallery = data.gallery || [];
+    const filtersEl = document.getElementById('galleryFilters');
+    const gridEl = document.getElementById('galleryGrid');
+    if (!filtersEl || !gridEl) return;
+
+    const categories = ['All', ...new Set(gallery.map((g) => g.category).filter(Boolean))];
+    filtersEl.innerHTML = categories
+      .map(
+        (cat) => `
+      <button type="button" class="filter-btn ${
+        portalState.selectedGalleryCategory === cat ? 'active' : ''
+      }" data-gallery-cat="${escapeHtml(cat)}">
+        ${escapeHtml(cat)}
+      </button>
+    `
+      )
+      .join('');
+
+    const filtered =
+      portalState.selectedGalleryCategory === 'All'
+        ? gallery
+        : gallery.filter((g) => g.category === portalState.selectedGalleryCategory);
+
+    gridEl.innerHTML = filtered
+      .map(
+        (g) => `
+      <div class="gallery-item" data-img="${escapeHtml(g.image_url)}" data-title="${escapeHtml(
+          g.title
+        )}" data-caption="${escapeHtml(g.caption)}">
+        <div class="gallery-thumb">
+          <img src="${escapeHtml(g.image_url)}" alt="${escapeHtml(g.title)}" loading="lazy" />
+          <span class="gallery-cat-badge">${escapeHtml(g.category)}</span>
+        </div>
+        <div class="gallery-caption">
+          <h4>${escapeHtml(g.title)}</h4>
+          <p>${escapeHtml(g.caption)}</p>
+        </div>
+      </div>
+    `
+      )
+      .join('');
+  }
+
+  function renderFacilitiesSection(data) {
+    const facilities = data.facilities || [];
+    const stats = data.patientStats || [];
+    const inventory = data.medicalInventory || [];
+
+    const facGrid = document.getElementById('facilitiesGrid');
+    if (facGrid) {
+      facGrid.innerHTML = facilities
+        .map(
+          (f) => `
+        <article class="facility-card">
+          ${
+            f.image_url
+              ? `<div class="facility-media"><img src="${escapeHtml(f.image_url)}" alt="${escapeHtml(f.title)}" class="zoomable-img" loading="lazy" /></div>`
+              : ''
+          }
+          <div class="facility-body">
+            ${f.status_badge ? `<span class="facility-badge">${escapeHtml(f.status_badge)}</span>` : ''}
+            <h3>${escapeHtml(f.title)}</h3>
+            <p>${escapeHtml(f.description)}</p>
+            ${
+              f.specifications
+                ? `<div class="facility-specs">${escapeHtml(f.specifications)}</div>`
+                : ''
+            }
+          </div>
+        </article>
+      `
+        )
+        .join('');
+    }
+
+    const mortuaryStats = stats.filter((x) => x.stat_group === 'mortuary');
+    const mortRow = document.getElementById('mortuaryStatsRow');
+    if (mortRow) {
+      mortRow.innerHTML = mortuaryStats
+        .map(
+          (m) => `
+        <div class="mortuary-stat-box">
+          <strong>${formatNumber(m.count_value)}</strong>
+          <span>${escapeHtml(m.label)}</span>
+          <small>${escapeHtml(m.sub_details)}</small>
+        </div>
+      `
+        )
+        .join('');
+    }
+
+    renderMedicalInventoryTable(inventory);
+  }
+
+  function renderMedicalInventoryTable(inventory) {
+    const campTabsEl = document.getElementById('campTabs');
+    const tbody = document.getElementById('inventoryTableBody');
+    if (!campTabsEl || !tbody) return;
+
+    const camps = ['All', ...new Set(inventory.map((i) => i.camp_name).filter(Boolean))];
+    campTabsEl.innerHTML = camps
+      .map(
+        (c) => `
+      <button type="button" class="camp-tab-btn ${
+        portalState.selectedCamp === c ? 'active' : ''
+      }" data-camp="${escapeHtml(c)}">
+        ${escapeHtml(c)}
+      </button>
+    `
+      )
+      .join('');
+
+    const q = portalState.inventoryQuery.trim().toLowerCase();
+    const filtered = inventory.filter((item) => {
+      const matchCamp = portalState.selectedCamp === 'All' || item.camp_name === portalState.selectedCamp;
+      const matchQuery =
+        !q ||
+        String(item.item_name).toLowerCase().includes(q) ||
+        String(item.camp_name).toLowerCase().includes(q) ||
+        String(item.quantity).toLowerCase().includes(q);
+      return matchCamp && matchQuery;
+    });
+
+    tbody.innerHTML = filtered
+      .map(
+        (item) => `
+      <tr>
+        <td><strong>${escapeHtml(item.serial_no)}</strong></td>
+        <td>${escapeHtml(item.camp_name)}</td>
+        <td>${escapeHtml(item.item_name)}</td>
+        <td><strong>${escapeHtml(item.quantity)}</strong></td>
+        <td>${escapeHtml(item.remarks || '—')}</td>
+      </tr>
+    `
+      )
+      .join('');
+  }
+
+  function renderContactSection(data) {
+    const s = data.settings || {};
+    const contactLogo = document.getElementById('contactLogo');
+    if (contactLogo && s.logo_url) contactLogo.src = s.logo_url;
+
+    setText('contactOrgTitle', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
+    setText('contactRegSubtitle', s.registration_no ? `Registration No: ${s.registration_no}` : '');
+    setText('contactNoticeText', s.contact_notice || '');
+
+    const details = [
+      { label: 'Institution & Welfare Trust', value: s.organization_name },
+      { label: 'Official Registration No.', value: s.registration_no },
+      { label: 'Service Location & Base', value: s.contact_address || s.contact_location },
+      { label: 'Service Coverage Areas', value: s.service_areas },
+      { label: 'Operating Hours', value: s.operating_hours }
+    ];
+
+    if (s.contact_phone && s.contact_phone.trim()) {
+      details.push({ label: 'Official Contact Number', value: s.contact_phone.trim() });
+    }
+    if (s.contact_email && s.contact_email.trim()) {
+      details.push({ label: 'Official Email Address', value: s.contact_email.trim() });
+    }
+
+    const listEl = document.getElementById('contactDetailsList');
+    if (listEl) {
+      listEl.innerHTML = details
+        .filter((d) => d.value)
+        .map(
+          (d) => `
+        <div class="contact-detail-item">
+          <span>${escapeHtml(d.label)}</span>
+          <strong>${escapeHtml(d.value)}</strong>
+        </div>
+      `
+        )
+        .join('');
+    }
+  }
+
+  function openLightbox(src, title, desc) {
+    const modal = document.getElementById('lightboxModal');
+    const img = document.getElementById('lightboxImg');
+    const titleEl = document.getElementById('lightboxTitle');
+    const descEl = document.getElementById('lightboxDesc');
+    if (!modal || !img) return;
+    img.src = src;
+    img.alt = title || 'Preview';
+    if (titleEl) titleEl.textContent = title || '';
+    if (descEl) descEl.textContent = desc || '';
+    modal.classList.remove('hidden');
+  }
+
+  function closeLightbox() {
+    const modal = document.getElementById('lightboxModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  const VALID_SECTIONS = ['home', 'about', 'services', 'ambulances', 'team', 'gallery', 'facilities', 'contact'];
+
+  function activateSection(sectionId, updateHistory = true) {
+    const cleanId = VALID_SECTIONS.includes(sectionId) ? sectionId : 'home';
+
+    // Show ONLY the active section and hide all other sections
+    document.querySelectorAll('.portal-section').forEach((sec) => {
+      sec.classList.toggle('active-section', sec.id === cleanId);
+    });
+
+    // Update active state on navigation links
+    document.querySelectorAll('.nav-link').forEach((link) => {
+      link.classList.toggle('active', link.getAttribute('data-nav') === cleanId);
+    });
+
+    if (updateHistory && window.location.hash !== `#${cleanId}`) {
+      window.history.pushState(null, '', `#${cleanId}`);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setupInteractions() {
+    // Mobile menu toggle
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const headerNav = document.getElementById('headerNav');
+    if (mobileBtn && headerNav) {
+      mobileBtn.addEventListener('click', () => {
+        const isOpen = headerNav.classList.toggle('open');
+        mobileBtn.setAttribute('aria-expanded', String(isOpen));
+      });
+    }
+
+    // Section switching (each tab displays ONLY its own relevant section)
+    document.addEventListener('click', (e) => {
+      const navLink = e.target.closest('[data-nav]');
+      if (navLink) {
+        e.preventDefault();
+        const targetId = navLink.getAttribute('data-nav');
+        activateSection(targetId, true);
+        if (headerNav) headerNav.classList.remove('open');
+        if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      // Gallery category filter
+      const galBtn = e.target.closest('[data-gallery-cat]');
+      if (galBtn && portalState.data) {
+        portalState.selectedGalleryCategory = galBtn.getAttribute('data-gallery-cat');
+        renderGallerySection(portalState.data);
+      }
+
+      // Medical inventory camp filter
+      const campBtn = e.target.closest('[data-camp]');
+      if (campBtn && portalState.data) {
+        portalState.selectedCamp = campBtn.getAttribute('data-camp');
+        renderMedicalInventoryTable(portalState.data.medicalInventory || []);
+      }
+
+      // Gallery item click -> Lightbox
+      const galItem = e.target.closest('.gallery-item');
+      if (galItem) {
+        openLightbox(
+          galItem.getAttribute('data-img'),
+          galItem.getAttribute('data-title'),
+          galItem.getAttribute('data-caption')
+        );
+      }
+
+      // Zoomable image click -> Lightbox
+      if (e.target.classList.contains('zoomable-img')) {
+        openLightbox(e.target.src, e.target.alt || 'Image View', '');
+      }
+    });
+
+    // Inventory search input
+    const searchInput = document.getElementById('inventorySearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        portalState.inventoryQuery = e.target.value || '';
+        if (portalState.data) {
+          renderMedicalInventoryTable(portalState.data.medicalInventory || []);
+        }
+      });
+    }
+
+    // Lightbox close
+    const closeBtn = document.getElementById('lightboxCloseBtn');
+    const modal = document.getElementById('lightboxModal');
+    if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeLightbox();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // Public Contact Form submission
+    const contactForm = document.getElementById('publicContactForm');
+    if (contactForm) {
+      contactForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const feedback = document.getElementById('contactFormFeedback');
+        const submitBtn = document.getElementById('contactSubmitBtn');
+
+        const payload = {
+          sender_name: document.getElementById('senderName').value.trim(),
+          sender_phone: document.getElementById('senderPhone').value.trim(),
+          sender_email: document.getElementById('senderEmail').value.trim(),
+          message_type: document.getElementById('messageType').value,
+          subject: document.getElementById('messageSubject').value.trim(),
+          message: document.getElementById('messageBody').value.trim()
+        };
+
+        if (!payload.sender_name || !payload.sender_phone || !payload.subject || !payload.message) {
+          feedback.textContent = 'Please complete all required fields (*).';
+          feedback.className = 'form-feedback error';
+          feedback.classList.remove('hidden');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        try {
+          const res = await fetch('/api/public/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.error || 'Submission failed.');
+
+          feedback.textContent = result.message || 'Your message has been submitted.';
+          feedback.className = 'form-feedback success';
+          feedback.classList.remove('hidden');
+          contactForm.reset();
+        } catch (err) {
+          feedback.textContent = err.message || 'Could not send message.';
+          feedback.className = 'form-feedback error';
+          feedback.classList.remove('hidden');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Message';
+        }
+      });
+    }
+    window.addEventListener('hashchange', () => {
+      const hashTarget = window.location.hash.replace(/^#/, '') || 'home';
+      activateSection(hashTarget, false);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupInteractions();
+    const initialSection = window.location.hash.replace(/^#/, '') || 'home';
+    activateSection(initialSection, false);
+    loadPortalData();
+  });
+})();

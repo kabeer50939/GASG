@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | Gwadar Ambulance Service (G.A.S.G)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/css/admin.css?v=20261025_7" />
+</head>
+<body class="admin-dashboard-body">
+  <div class="admin-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-brand">
+        <img src="/uploads/pptx/image5.png" alt="GASG" class="sidebar-logo" />
+        <div>
+          <h2>G.A.S.G Admin</h2>
+          <p>Reg No: Bcra-114272</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Admin Navigation">
+        <button type="button" class="side-link active" data-tab="overview">
+          <span>Dashboard Overview</span>
+        </button>
+        <button type="button" class="side-link" data-tab="settings">
+          <span>Header &amp; Site Settings</span>
+        </button>
+        <button type="button" class="side-link" data-tab="about">
+          <span>About, Mission &amp; Projects</span>
+        </button>
+        <button type="button" class="side-link" data-tab="services">
+          <span>Services &amp; Disasters</span>
+        </button>
+        <button type="button" class="side-link" data-tab="stats">
+          <span>Patient &amp; Mortuary Stats</span>
+        </button>
+        <button type="button" class="side-link" data-tab="ambulances">
+          <span>Ambulances Fleet</span>
+        </button>
+        <button type="button" class="side-link" data-tab="team">
+          <span>Our Team (Organogram)</span>
+        </button>
+        <button type="button" class="side-link" data-tab="gallery">
+          <span>Gallery &amp; Media Upload</span>
+        </button>
+        <button type="button" class="side-link" data-tab="facilities">
+          <span>Facilities &amp; Medicine Stock</span>
+        </button>
+        <button type="button" class="side-link" data-tab="messages">
+          <span>Contact Inquiries</span>
+          <span class="unread-badge hidden" id="sidebarUnreadBadge">0</span>
+        </button>
+        <button type="button" class="side-link" data-tab="backup">
+          <span>Database Backup &amp; Restore</span>
+        </button>
+        <button type="button" class="side-link" data-tab="security">
+          <span>Admin Security &amp; Logs</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="/" target="_blank" rel="noopener" class="btn-admin btn-admin-outline btn-admin-block">
+          View Public Portal &nearr;
+        </a>
+        <button type="button" id="logoutBtn" class="btn-admin btn-admin-danger btn-admin-block">
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="admin-workspace">
+      <header class="admin-topbar">
+        <div class="topbar-left">
+          <button type="button" id="adminSidebarToggle" class="sidebar-toggle-btn" aria-label="Toggle Sidebar">
+            &#9776;
+          </button>
+          <div>
+            <h1 id="activeTabTitle">Dashboard Overview</h1>
+            <p class="topbar-sub">All public portal content is controlled exclusively from this Admin Panel.</p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="admin-user-pill">
+            <span class="admin-role-dot"></span>
+            <div>
+              <strong id="adminUserName">Administrator</strong>
+              <small id="adminUserRole">Super Administrator</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Global Toast Notification -->
+      <div id="adminToast" class="admin-toast hidden" role="status"></div>
+
+      <main class="admin-content" id="adminContent">
+        <!-- TAB 1: OVERVIEW -->
+        <section class="admin-tab-pane active" id="tab-overview">
+          <div class="kpi-grid" id="overviewKpiGrid"></div>
+
+          <div class="admin-split-2">
+            <div class="admin-panel-card">
+              <div class="panel-card-head">
+                <h3>Quick Content Management</h3>
+              </div>
+              <p class="panel-help">Select any section to add, edit, or remove records displayed on the public portal:</p>
+              <div class="quick-actions-grid">
+                <button type="button" class="quick-btn" data-goto="settings">Edit Header &amp; Branding</button>
+                <button type="button" class="quick-btn" data-goto="about">Edit History, Vision &amp; Demands</button>
+                <button type="button" class="quick-btn" data-goto="services">Manage Services &amp; Disasters</button>
+                <button type="button" class="quick-btn" data-goto="stats">Update 4,225 Patient Stats</button>
+                <button type="button" class="quick-btn" data-goto="ambulances">Manage Ambulances Fleet</button>
+                <button type="button" class="quick-btn" data-goto="team">Manage Organogram Team</button>
+                <button type="button" class="quick-btn" data-goto="gallery">Upload &amp; Manage Gallery</button>
+                <button type="button" class="quick-btn" data-goto="facilities">Manage Facilities &amp; Medicines</button>
+                <button type="button" class="quick-btn" data-goto="backup">Database Backup &amp; Restore</button>
+              </div>
+            </div>
+
+            <div class="admin-panel-card">
+              <div class="panel-card-head">
+                <h3>Recent Audit Activity</h3>
+              </div>
+              <div id="overviewAuditList" class="mini-audit-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: HEADER & SITE SETTINGS -->
+        <section class="admin-tab-pane" id="tab-settings">
+          <form id="settingsForm" class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Header Design, Institutional Identity &amp; Contact Settings</h3>
+              <button type="submit" class="btn-admin btn-admin-primary">Save All Settings</button>
+            </div>
+
+            <div class="settings-section-title">1. Public Header Design (Real Logo, Real Ambulance Name &amp; Subtitle)</div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Header &amp; Institution Official Logo Photo</label>
+                <div class="photo-upload-card">
+                  <input type="hidden" name="logo_url" id="setting_logo_url" />
+                  <div class="photo-upload-preview-row">
+                    <img id="setting_logo_thumb" src="/uploads/pptx/image5.png" class="modal-img-thumb" alt="Logo Preview" />
+                    <div class="photo-upload-info">
+                      <span id="setting_logo_status" class="photo-upload-status has-photo">&#10003; Photo Attached</span>
+                      <div class="photo-upload-actions">
+                        <button type="button" class="btn-admin btn-admin-primary btn-admin-sm" data-crop-target="#setting_logo_url" data-crop-thumb="#setting_logo_thumb" data-crop-status="#setting_logo_status" data-crop-aspect="1">
+                          Upload Logo
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" data-recrop-target="#setting_logo_url" data-crop-thumb="#setting_logo_thumb" data-crop-status="#setting_logo_status" data-crop-aspect="1">
+                          Crop Current
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Header Real Ambulance Name (Main Title)</label>
+                <input type="text" name="header_title" required />
+              </div>
+              <div class="form-group">
+                <label>Header Subtitle</label>
+                <input type="text" name="header_subtitle" required />
+              </div>
+            </div>
+
+            <div class="settings-section-title">2. Organization &amp; Trust Identity</div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Full Organization &amp; Trust Name</label>
+                <input type="text" name="organization_name" required />
+              </div>
+              <div class="form-group">
+                <label>Short Acronym</label>
+                <input type="text" name="short_name" />
+              </div>
+              <div class="form-group">
+                <label>Official Registration No.</label>
+                <input type="text" name="registration_no" />
+              </div>
+            </div>
+
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Motto / Slogan</label>
+                <input type="text" name="slogan" />
+              </div>
+              <div class="form-group">
+                <label>Established Date</label>
+                <input type="text" name="established_date" />
+              </div>
+              <div class="form-group">
+                <label>Service Duration Summary</label>
+                <input type="text" name="service_duration" />
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Services Area Map Photo</label>
+                <div class="photo-upload-card">
+                  <input type="hidden" name="map_url" id="setting_map_url" />
+                  <div class="photo-upload-preview-row">
+                    <img id="setting_map_thumb" src="/uploads/pptx/image6.png" class="modal-img-thumb" alt="Map Preview" />
+                    <div class="photo-upload-info">
+                      <span id="setting_map_status" class="photo-upload-status has-photo">&#10003; Photo Attached</span>
+                      <div class="photo-upload-actions">
+                        <button type="button" class="btn-admin btn-admin-primary btn-admin-sm" data-crop-target="#setting_map_url" data-crop-thumb="#setting_map_thumb" data-crop-status="#setting_map_status" data-crop-aspect="0">
+                          Upload Photo
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" data-recrop-target="#setting_map_url" data-crop-thumb="#setting_map_thumb" data-crop-status="#setting_map_status" data-crop-aspect="0">
+                          Crop Current
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Hero Background Banner Photo</label>
+                <div class="photo-upload-card">
+                  <input type="hidden" name="hero_bg_url" id="setting_hero_bg_url" />
+                  <div class="photo-upload-preview-row">
+                    <img id="setting_hero_thumb" src="/uploads/pptx/image1.jpeg" class="modal-img-thumb" alt="Hero Preview" />
+                    <div class="photo-upload-info">
+                      <span id="setting_hero_status" class="photo-upload-status has-photo">&#10003; Photo Attached</span>
+                      <div class="photo-upload-actions">
+                        <button type="button" class="btn-admin btn-admin-primary btn-admin-sm" data-crop-target="#setting_hero_bg_url" data-crop-thumb="#setting_hero_thumb" data-crop-status="#setting_hero_status" data-crop-aspect="1.777">
+                          Upload Photo
+                        </button>
+                        <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm" data-recrop-target="#setting_hero_bg_url" data-crop-thumb="#setting_hero_thumb" data-crop-status="#setting_hero_status" data-crop-aspect="1.777">
+                          Crop Current
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section-title">3. History &amp; Vision Content</div>
+            <div class="form-group">
+              <label>History Heading</label>
+              <input type="text" name="history_title" />
+            </div>
+            <div class="form-group">
+              <label>History Full Text</label>
+              <textarea name="history_text" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Vision Statement</label>
+              <textarea name="vision_text" rows="2"></textarea>
+            </div>
+
+            <div class="settings-section-title">4. Contact &amp; Coverage Information</div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Operating Hours</label>
+                <input type="text" name="operating_hours" />
+              </div>
+              <div class="form-group">
+                <label>Service Coverage Areas</label>
+                <input type="text" name="service_areas" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Location (City / Province)</label>
+                <input type="text" name="contact_location" />
+              </div>
+              <div class="form-group">
+                <label>Station Address</label>
+                <input type="text" name="contact_address" />
+              </div>
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label>Official Contact Phone (Leave blank if not yet published)</label>
+                <input type="text" name="contact_phone" placeholder="Configure official contact number" />
+              </div>
+              <div class="form-group">
+                <label>Official Contact Email (Leave blank if not yet published)</label>
+                <input type="email" name="contact_email" placeholder="Configure official email address" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Public Contact Section Notice</label>
+              <textarea name="contact_notice" rows="2"></textarea>
+            </div>
+
+            <div class="form-actions-end">
+              <button type="submit" class="btn-admin btn-admin-primary">Save All Settings</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- TAB 3: ABOUT, MISSION, PROJECTS & DEMANDS -->
+        <section class="admin-tab-pane" id="tab-about">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Mission Statements (Slide 4)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addMissionBtn">+ Add Mission Point</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Mission Statement</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMissionsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>New Proposed Projects &amp; Institutional Demands (Slides 14–18)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addProjectDemandBtn">+ Add Project / Demand</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Title &amp; Subtitle</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminProjectsDemandsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: SERVICES & DISASTERS -->
+        <section class="admin-tab-pane" id="tab-services">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Emergency &amp; Welfare Services</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addServiceBtn">+ Add Service</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Service Title &amp; Category</th>
+                    <th>Stats Badge</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminServicesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Disaster Rescues, Flood Operations &amp; Community Events</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addDisasterBtn">+ Add Operation / Event</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Operation Title &amp; Date</th>
+                    <th>Location &amp; Impact</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminDisastersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 5: PATIENT & MORTUARY STATS -->
+        <section class="admin-tab-pane" id="tab-stats">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Patient &amp; Mortuary Statistics (Slides 7, 8, 9)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addStatBtn">+ Add Statistic Record</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Group</th>
+                    <th>Label / Category</th>
+                    <th>Count Value</th>
+                    <th>Details</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminStatsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 6: AMBULANCES FLEET -->
+        <section class="admin-tab-pane" id="tab-ambulances">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Ambulances Fleet Management</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addAmbulanceBtn">+ Add Ambulance Unit</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Unit Name &amp; Code</th>
+                    <th>Status &amp; Coverage</th>
+                    <th>Equipment Summary</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAmbulancesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 7: OUR TEAM -->
+        <section class="admin-tab-pane" id="tab-team">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Our Team Members (Photo, Name &amp; Occupation)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addTeamBtn">+ Add Team Member</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Member Name</th>
+                    <th>Occupation / Designation</th>
+                    <th>Display Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminTeamBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 8: GALLERY & MEDIA UPLOAD -->
+        <section class="admin-tab-pane" id="tab-gallery">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Photo Gallery Items</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addGalleryBtn">+ Add Gallery Photo</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Preview</th>
+                    <th>Title &amp; Category</th>
+                    <th>Caption</th>
+                    <th>Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminGalleryBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 9: FACILITIES & MEDICINE INVENTORY -->
+        <section class="admin-tab-pane" id="tab-facilities">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Facilities &amp; Infrastructure (Mortuary, Ghusl, Station, Equipment)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addFacilityBtn">+ Add Facility</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Facility Title &amp; Category</th>
+                    <th>Badge &amp; Specifications</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminFacilitiesBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Ethqaf &amp; Gwadar Ijtema Medical Camp Inventory (Slides 10–12)</h3>
+              <button type="button" class="btn-admin btn-admin-primary" id="addMedItemBtn">+ Add Medicine / Equipment Item</button>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Camp / Program</th>
+                    <th>Item Name</th>
+                    <th>Quantity</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMedInventoryBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 10: PUBLIC CONTACT INQUIRIES -->
+        <section class="admin-tab-pane" id="tab-messages">
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Public Contact Us Inquiries &amp; Coordination Requests</h3>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Sender &amp; Phone</th>
+                    <th>Category &amp; Subject</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMessagesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 11: STANDALONE DATABASE BACKUP & RESTORE -->
+        <section class="admin-tab-pane" id="tab-backup">
+          <!-- Friendly Top Status Banner -->
+          <div class="backup-hero-banner" id="localBackupStatusBox">
+            <div class="backup-hero-left">
+              <div class="backup-hero-check">&#10003;</div>
+              <div>
+                <h3>Automatic Backup is Active</h3>
+                <p>Whenever you add, edit, or delete anything in the Admin Panel, your linked backup file updates automatically.</p>
+              </div>
+            </div>
+            <div class="backup-hero-meta">
+              <div class="backup-meta-pill">
+                <span>Status:</span>
+                <strong id="backupStatusText" class="text-green">Synced &amp; Protected</strong>
+              </div>
+              <div class="backup-meta-pill">
+                <span>Last Saved:</span>
+                <strong id="backupLastSyncText">Up to date</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Easy One-Click Action Cards -->
+          <div class="backup-easy-grid">
+            <!-- CARD 1: DOWNLOAD BACKUP -->
+            <div class="backup-easy-card">
+              <div class="backup-card-icon icon-download">&#8681;</div>
+              <h3>Download Backup Copy</h3>
+              <p>Save a complete standalone backup file of all website sections, photos, and settings to your computer.</p>
+              <div class="backup-card-spacer"></div>
+              <button type="button" id="downloadStandaloneDbBtn" class="btn-admin btn-admin-primary btn-admin-block backup-big-btn">
+                &#8681; Download Backup File
+              </button>
+            </div>
+
+            <!-- CARD 2: UPLOAD & RESTORE BACKUP -->
+            <div class="backup-easy-card">
+              <div class="backup-card-icon icon-restore">&#8679;</div>
+              <h3>Restore from Backup</h3>
+              <p>Select a backup file from your computer to restore all website content and settings immediately.</p>
+              <div class="backup-card-spacer"></div>
+              <form id="restoreBackupForm" class="backup-upload-form">
+                <input type="file" id="uploadBackupFileInput" name="backupFile" accept=".sqlite,.db,application/x-sqlite3,application/octet-stream" class="hidden" />
+                <div id="selectedBackupFileName" class="backup-file-pill hidden"></div>
+                <label for="uploadBackupFileInput" id="chooseBackupFileLabel" class="btn-admin btn-admin-secondary btn-admin-block backup-big-btn" style="cursor:pointer; margin:0;">
+                  &#128194; Select Backup File to Restore
+                </label>
+                <button type="submit" id="restoreBackupSubmitBtn" class="btn-admin btn-admin-primary btn-admin-block backup-big-btn hidden" style="margin-top:0.5rem;">
+                  &#10003; Confirm &amp; Restore Now
+                </button>
+              </form>
+            </div>
+
+            <!-- CARD 3: AUTO-SAVE FILE LOCATION -->
+            <div class="backup-easy-card">
+              <div class="backup-card-icon icon-sync">&#128190;</div>
+              <h3>Auto-Save File on Computer</h3>
+              <p>Choose a single file on your computer that automatically updates every time you make changes.</p>
+              <div class="backup-connected-box">
+                <small>Connected File:</small>
+                <strong id="backupTargetText">gasg_linked_local_backup.sqlite</strong>
+              </div>
+              <div class="backup-card-spacer"></div>
+              <button type="button" id="browserFileLinkBtn" class="btn-admin btn-admin-secondary btn-admin-block backup-big-btn">
+                &#128193; Choose Auto-Save File
+              </button>
+              <button type="button" id="toggleManualPathBtn" class="backup-manual-link-btn">
+                Or type file location manually &#9662;
+              </button>
+              <div id="manualBackupPathWrap" class="backup-manual-wrap hidden">
+                <input type="text" id="localBackupPathInput" placeholder="D:\GASG\data\gasg_linked_local_backup.sqlite" />
+                <button type="button" id="saveLocalBackupBtn" class="btn-admin btn-admin-primary btn-admin-sm btn-admin-block">
+                  Save File Location
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simple Bottom Bar for Factory Presentation Reset -->
+          <div class="backup-footer-bar">
+            <div>
+              <strong>Reset to Original Presentation Data</strong>
+              <span>Restore all sections to the original verified slides from <em>GASG PPT 131026.pptx</em>.</span>
+            </div>
+            <button type="button" id="resetPptxBtn" class="btn-admin btn-admin-secondary btn-admin-sm">
+              Reset to Presentation Data
+            </button>
+          </div>
+        </section>
+
+        <!-- TAB 12: ADMIN SECURITY & AUDIT LOGS -->
+        <section class="admin-tab-pane" id="tab-security">
+          <div class="admin-split-2">
+            <div class="admin-panel-card">
+              <div class="panel-card-head">
+                <h3>Change Administrator Password</h3>
+              </div>
+              <form id="changePasswordForm">
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" name="currentPassword" required />
+                </div>
+                <div class="form-group">
+                  <label>New Password (minimum 8 characters)</label>
+                  <input type="password" name="newPassword" required minlength="8" />
+                </div>
+                <button type="submit" class="btn-admin btn-admin-primary">Update Password</button>
+              </form>
+            </div>
+
+            <div class="admin-panel-card">
+              <div class="panel-card-head">
+                <h3>Create Additional Administrator Account</h3>
+              </div>
+              <form id="createAdminUserForm">
+                <div class="form-group">
+                  <label>Username</label>
+                  <input type="text" name="username" required />
+                </div>
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" name="full_name" required />
+                </div>
+                <div class="form-group">
+                  <label>Password (minimum 8 characters)</label>
+                  <input type="password" name="password" required minlength="8" />
+                </div>
+                <button type="submit" class="btn-admin btn-admin-secondary">Create Admin User</button>
+              </form>
+
+              <hr class="admin-hr" />
+              <h4>Active Administrators</h4>
+              <div id="adminUsersList" class="mini-audit-list"></div>
+            </div>
+          </div>
+
+          <div class="admin-panel-card">
+            <div class="panel-card-head">
+              <h3>Security &amp; Content Audit Logs</h3>
+            </div>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Administrator</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAuditLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Universal CRUD Modal -->
+  <div id="crudModal" class="crud-modal hidden" role="dialog" aria-modal="true">
+    <div class="crud-modal-card">
+      <div class="crud-modal-head">
+        <h3 id="crudModalTitle">Edit Item</h3>
+        <button type="button" id="crudModalClose" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="crudModalForm" class="crud-modal-body"></form>
+    </div>
+  </div>
+
+  <!-- Hidden File Input for Universal Photo Cropper & Auto-Compressor -->
+  <input type="file" id="globalCropFileInput" accept="image/*" class="hidden" />
+
+  <!-- Universal Flexible Image Crop & Auto-Compression Studio Modal -->
+  <div id="imageCropperModal" class="crud-modal cropper-modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Crop and Compress Image">
+    <div class="crud-modal-card cropper-modal-card">
+      <div class="crud-modal-head">
+        <div>
+          <h3>Flexible Photo Crop &amp; Auto-Compression Studio</h3>
+          <small class="cropper-subtext">Drag or resize handles freely for small or large photos. Auto-compression minimizes storage size.</small>
+        </div>
+        <button type="button" id="cropperCloseBtn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="cropper-modal-body">
+        <!-- Toolbar: Aspect Ratios, Zoom, Max Width & Compression Quality -->
+        <div class="cropper-toolbar">
+          <div class="cropper-tool-group">
+            <label>Crop Mode:</label>
+            <div class="aspect-btn-group">
+              <button type="button" class="aspect-btn active" data-aspect="0">Free / Flexible</button>
+              <button type="button" class="aspect-btn" data-aspect="1">1:1 Square</button>
+              <button type="button" class="aspect-btn" data-aspect="1.3333">4:3 Standard</button>
+              <button type="button" class="aspect-btn" data-aspect="1.7777">16:9 Wide</button>
+            </div>
+          </div>
+
+          <div class="cropper-tool-group">
+            <label for="cropZoomRange">Image Scale (<span id="cropZoomVal">100%</span>):</label>
+            <input type="range" id="cropZoomRange" min="40" max="250" value="100" />
+          </div>
+
+          <div class="cropper-tool-group">
+            <label for="cropMaxDimSelect">Max Output Resolution:</label>
+            <select id="cropMaxDimSelect">
+              <option value="1200" selected>Auto-Optimize (Max 1200px)</option>
+              <option value="800">Compact Web (Max 800px)</option>
+              <option value="500">Profile / Thumbnail (Max 500px)</option>
+              <option value="1600">High Detail (Max 1600px)</option>
+            </select>
+          </div>
+
+          <div class="cropper-tool-group">
+            <label for="cropQualityRange">Auto-Compress Quality (<span id="cropQualityVal">80%</span>):</label>
+            <input type="range" id="cropQualityRange" min="40" max="95" value="80" />
+          </div>
+        </div>
+
+        <!-- Main Interactive Workspace: Stage + Live Compressed Preview -->
+        <div class="cropper-workspace">
+          <div class="cropper-stage-wrap" id="cropperStageWrap">
+            <div class="cropper-stage" id="cropperStage">
+              <img id="cropperSourceImg" src="" alt="Crop Source" draggable="false" />
+              <div class="crop-selection-box" id="cropSelectionBox">
+                <div class="crop-grid-lines"></div>
+                <span class="crop-handle nw" data-handle="nw"></span>
+                <span class="crop-handle n" data-handle="n"></span>
+                <span class="crop-handle ne" data-handle="ne"></span>
+                <span class="crop-handle e" data-handle="e"></span>
+                <span class="crop-handle se" data-handle="se"></span>
+                <span class="crop-handle s" data-handle="s"></span>
+                <span class="crop-handle sw" data-handle="sw"></span>
+                <span class="crop-handle w" data-handle="w"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cropper-preview-sidebar">
+            <h4>Compressed Output Preview</h4>
+            <div class="cropper-preview-frame">
+              <img id="cropperLivePreviewImg" src="" alt="Compressed Preview" />
+            </div>
+            <div class="compression-stats-box">
+              <div><span>Original Size:</span> <strong id="origSizeText">—</strong></div>
+              <div><span>Compressed Size:</span> <strong id="compressedSizeText" class="text-green">—</strong></div>
+              <div><span>Output Dimensions:</span> <strong id="outputDimText">—</strong></div>
+              <div><span>Space Saved:</span> <strong id="spaceSavedText" class="text-green">—</strong></div>
+            </div>
+            <button type="button" class="btn-admin btn-admin-secondary btn-admin-sm btn-admin-block" id="resetCropBoxBtn">
+              Reset Crop Area
+            </button>
+          </div>
+        </div>
+
+        <div class="form-actions-end cropper-footer-actions">
+          <button type="button" class="btn-admin btn-admin-secondary" id="cropperCancelBtn">Cancel</button>
+          <button type="button" class="btn-admin btn-admin-primary" id="cropperConfirmUploadBtn">
+            Crop, Auto-Compress &amp; Upload Photo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/js/admin.js?v=20261025_7"></script>
+</body>
+</html>
