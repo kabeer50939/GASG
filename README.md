@@ -1,3 +1,13 @@
+---
+title: Gwadar Ambulance Service Gwadar
+emoji: 🚑
+colorFrom: red
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Gwadar Ambulance Service, Gwadar (G.A.S.G) — Official Website Portal & Secure Admin Panel
 
 Complete full-stack web portal for **Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust** (`Registration No: Bcra-114272`), built using the **Iterative Software Development Model** across 6 structured sprints.
