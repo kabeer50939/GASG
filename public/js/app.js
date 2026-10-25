@@ -5,8 +5,43 @@
     data: null,
     selectedGalleryCategory: 'All',
     selectedCamp: 'All',
-    inventoryQuery: ''
+    inventoryQuery: '',
+    renderedSections: new Set(),
+    activeSection: 'home'
   };
+
+  function ensureSectionRendered(sectionId) {
+    const data = portalState.data;
+    if (!data || portalState.renderedSections.has(sectionId)) return;
+    portalState.renderedSections.add(sectionId);
+
+    switch (sectionId) {
+      case 'home':
+        renderHeroSection(data);
+        break;
+      case 'about':
+        renderAboutSection(data);
+        break;
+      case 'services':
+        renderServicesSection(data);
+        break;
+      case 'ambulances':
+        renderAmbulancesSection(data);
+        break;
+      case 'team':
+        renderTeamSection(data);
+        break;
+      case 'gallery':
+        renderGallerySection(data);
+        break;
+      case 'facilities':
+        renderFacilitiesSection(data);
+        break;
+      case 'contact':
+        renderContactSection(data);
+        break;
+    }
+  }
 
   function escapeHtml(str) {
     return String(str ?? '')
@@ -34,12 +69,16 @@
 
     try {
       let data = null;
-      try {
-        const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
-        if (res.ok) {
-          data = await res.json();
-        }
-      } catch (_) {}
+      const isStaticHost = window.location.hostname.endsWith('.hf.space') || window.location.hostname.endsWith('huggingface.co');
+
+      if (!isStaticHost) {
+        try {
+          const res = await fetch('/api/public/portal-data', { cache: 'no-store' });
+          if (res.ok) {
+            data = await res.json();
+          }
+        } catch (_) {}
+      }
 
       if (!data) {
         const localRaw = localStorage.getItem('gasg_master_db_v1');
@@ -49,7 +88,7 @@
           } catch (_) {}
         }
         if (!data) {
-          const fallbackRes = await fetch('/data/portal_data.json', { cache: 'no-store' });
+          const fallbackRes = await fetch('/data/portal_data.json');
           if (!fallbackRes.ok) throw new Error('Failed to load portal data');
           data = await fallbackRes.json();
           try {
@@ -59,23 +98,19 @@
       }
 
       portalState.data = data;
+      portalState.renderedSections.clear();
 
       renderHeaderAndFooter(data);
-      renderHeroSection(data);
-      renderAboutSection(data);
-      renderServicesSection(data);
-      renderAmbulancesSection(data);
-      renderTeamSection(data);
-      renderGallerySection(data);
-      renderFacilitiesSection(data);
-      renderContactSection(data);
+      ensureSectionRendered('home');
+      if (portalState.activeSection && portalState.activeSection !== 'home') {
+        ensureSectionRendered(portalState.activeSection);
+      }
 
       if (loader) loader.classList.add('hidden');
       if (main) main.classList.remove('hidden');
     } catch (err) {
-      if (loader) {
-        loader.innerHTML = `<p style="color:#b91c1c;font-weight:600;">Unable to load portal data. Please refresh the page.</p>`;
-      }
+      if (loader) loader.classList.add('hidden');
+      if (main) main.classList.remove('hidden');
     }
   }
 
@@ -88,10 +123,14 @@
     );
 
     const headerLogo = document.getElementById('headerLogoImg');
-    if (headerLogo && s.logo_url) headerLogo.src = s.logo_url;
+    if (headerLogo && s.logo_url && headerLogo.getAttribute('src') !== s.logo_url) {
+      headerLogo.src = s.logo_url;
+    }
 
     const footerLogo = document.getElementById('footerLogo');
-    if (footerLogo && s.logo_url) footerLogo.src = s.logo_url;
+    if (footerLogo && s.logo_url && footerLogo.getAttribute('src') !== s.logo_url) {
+      footerLogo.src = s.logo_url;
+    }
 
     setText('footerOrgName', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
     setText('footerRegNo', s.registration_no ? `Registration No: ${s.registration_no}` : '');
@@ -108,7 +147,9 @@
 
     const backdrop = document.getElementById('heroBackdrop');
     if (backdrop && s.hero_bg_url) {
-      backdrop.style.backgroundImage = `url('${encodeURI(s.hero_bg_url)}')`;
+      setTimeout(() => {
+        backdrop.style.backgroundImage = `url('${encodeURI(s.hero_bg_url)}')`;
+      }, 250);
     }
 
     setText('heroHoursBadge', s.operating_hours || '24/7 Hours Service');
@@ -121,7 +162,9 @@
     setText('heroDurationText', s.service_duration || '');
 
     const heroLogo = document.getElementById('heroLogoImg');
-    if (heroLogo && s.logo_url) heroLogo.src = s.logo_url;
+    if (heroLogo && s.logo_url && heroLogo.getAttribute('src') !== s.logo_url) {
+      heroLogo.src = s.logo_url;
+    }
 
     // Build Metrics Strip from authentic patientStats + settings
     const regional = stats.filter((x) => x.stat_group === 'regional');
@@ -701,6 +744,8 @@
 
   function activateSection(sectionId, updateHistory = true) {
     const cleanId = VALID_SECTIONS.includes(sectionId) ? sectionId : 'home';
+    portalState.activeSection = cleanId;
+    ensureSectionRendered(cleanId);
 
     // Show ONLY the active section and hide all other sections
     document.querySelectorAll('.portal-section').forEach((sec) => {
