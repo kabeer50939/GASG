@@ -871,50 +871,86 @@ const guideModal = document.getElementById('pwaGuideModal');
 const guideCloseBtn = document.getElementById('pwaGuideCloseBtn');
 const guideGotItBtn = document.getElementById('pwaGuideGotItBtn');
 const guideInstructions = document.getElementById('pwaGuideInstructions');
-if (isStandalonePwa()) {
-if (banner) banner.classList.add('hidden');
-if (headerBtn) headerBtn.classList.add('hidden');
+
+function hideInstallButtons() {
+if (headerBtn) {
+headerBtn.classList.add('hidden');
+headerBtn.style.display = 'none';
+}
+if (banner) {
+banner.classList.add('hidden');
+banner.style.display = 'none';
+}
+}
+
+const isInstalled = isStandalonePwa() || localStorage.getItem('gasg_pwa_installed') === '1';
+if (isInstalled) {
+hideInstallButtons();
 return;
 }
+
 if ('getInstalledRelatedApps' in navigator) {
 navigator.getInstalledRelatedApps().then((apps) => {
 if (apps && apps.length > 0) {
-if (banner) banner.classList.add('hidden');
-if (headerBtn) {
-headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
-headerBtn.title = 'G.A.S.G is already installed on your device';
-headerBtn.classList.remove('hidden');
-}
+localStorage.setItem('gasg_pwa_installed', '1');
+hideInstallButtons();
 }
 }).catch(() => {});
 }
-if (headerBtn) headerBtn.classList.remove('hidden');
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('auto_install') === '1' || urlParams.get('install') === '1') {
+window.__gasgAutoPromptOnReady = true;
+hideInstallButtons();
+if (window.history && window.history.replaceState) {
+const cleanUrl = window.location.pathname + window.location.hash;
+window.history.replaceState({}, document.title, cleanUrl);
+}
+}
+
 function showInstallBanner() {
-if (isStandalonePwa()) return;
+if (isStandalonePwa() || localStorage.getItem('gasg_pwa_installed') === '1') return;
 if (sessionStorage.getItem('gasg_pwa_dismissed') === '1') return;
 if (banner) banner.classList.remove('hidden');
 }
+
 window.__gasgOnInstallReady = () => {
-if (headerBtn) {
-headerBtn.classList.remove('hidden');
+if (isStandalonePwa() || localStorage.getItem('gasg_pwa_installed') === '1') {
+hideInstallButtons();
+return;
 }
+if (headerBtn) headerBtn.classList.remove('hidden');
 showInstallBanner();
 };
+
 if (window.__gasgDeferredPrompt) {
 window.__gasgOnInstallReady();
 }
-window.addEventListener('beforeinstallprompt', (e) => {
+
+window.addEventListener('beforeinstallprompt', async (e) => {
 e.preventDefault();
 window.__gasgDeferredPrompt = e;
+
+if (window.__gasgAutoPromptOnReady) {
+window.__gasgAutoPromptOnReady = false;
+hideInstallButtons();
+try {
+await e.prompt();
+const choice = await e.userChoice;
+if (choice && choice.outcome === 'accepted') {
+localStorage.setItem('gasg_pwa_installed', '1');
+showToast('Gwadar Ambulance Service app installed successfully!');
+}
+} catch (_) {}
+} else {
 window.__gasgOnInstallReady();
+}
 });
+
 window.addEventListener('appinstalled', () => {
 window.__gasgDeferredPrompt = null;
-if (banner) banner.classList.add('hidden');
-if (headerBtn) {
-headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
-headerBtn.title = 'G.A.S.G is installed on your device';
-}
+localStorage.setItem('gasg_pwa_installed', '1');
+hideInstallButtons();
 showToast('Gwadar Ambulance Service app installed successfully!');
 });
 let interactionTriggered = false;
@@ -1013,14 +1049,21 @@ function closeGuideModal() {
 if (guideModal) guideModal.classList.add('hidden');
 }
 async function handleInstallAction() {
-if (isStandalonePwa()) {
+hideInstallButtons();
+
+if (isStandalonePwa() || localStorage.getItem('gasg_pwa_installed') === '1') {
 showToast('G.A.S.G is already running as an installed app!');
 return;
 }
+
 if (window.top !== window.self) {
-openGuideModal();
+const directUrl = window.location.href.includes('huggingface.co')
+  ? 'https://kabeer50939-gasg.static.hf.space?auto_install=1'
+  : (window.location.origin + window.location.pathname + '?auto_install=1');
+window.open(directUrl, '_blank');
 return;
 }
+
 if (window.__gasgDeferredPrompt) {
 const promptEvent = window.__gasgDeferredPrompt;
 window.__gasgDeferredPrompt = null;
@@ -1028,18 +1071,17 @@ try {
 await promptEvent.prompt();
 const choice = await promptEvent.userChoice;
 if (choice && choice.outcome === 'accepted') {
-if (banner) banner.classList.add('hidden');
-if (headerBtn) {
-headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
-headerBtn.title = 'G.A.S.G is installed on your device';
-}
+localStorage.setItem('gasg_pwa_installed', '1');
+showToast('Gwadar Ambulance Service app installed successfully!');
 }
 } catch (err) {
 console.warn('Install prompt error:', err);
 }
 return;
 }
-openGuideModal();
+
+window.__gasgAutoPromptOnReady = true;
+showToast('Installing Gwadar Ambulance Service app...');
 }
 if (installBtn) installBtn.addEventListener('click', handleInstallAction);
 if (headerBtn) headerBtn.addEventListener('click', handleInstallAction);
