@@ -165,6 +165,23 @@ function request(server, method, urlPath, body = null, headers = {}) {
     }
     console.log('[PASS] Sprint 6: All 20 PPTX Gallery images verified on disk');
 
+    // -----------------------------------------------------------------------
+    // PWA & INSTALL BUTTON VERIFICATION
+    // -----------------------------------------------------------------------
+    const swCheck = await request(server, 'GET', '/sw.js');
+    assert.strictEqual(swCheck.status, 200);
+    assert.ok(swCheck.raw.includes('gasg-pwa-v5'));
+
+    const manifestRes = await request(server, 'GET', '/manifest.json');
+    assert.strictEqual(manifestRes.status, 200);
+    assert.ok(manifestRes.body && manifestRes.body.name);
+    assert.ok(Array.isArray(manifestRes.body.icons) && manifestRes.body.icons.length >= 2);
+
+    assert.ok(homePage.raw.includes('headerInstallAppBtn'), 'Header must contain Install App button');
+    assert.ok(homePage.raw.includes('pwaInstallBanner'), 'HTML must contain PWA install banner');
+    assert.ok(homePage.raw.includes('pwaGuideModal'), 'HTML must contain PWA guide modal');
+    console.log('[PASS] PWA & Install Button: Manifest, Service Worker, and Modal elements verified');
+
     console.log('================================================================');
     console.log(' ALL 6 SPRINTS VERIFIED — 100% TESTS PASSED SUCCESSFULLY ');
     console.log('================================================================');

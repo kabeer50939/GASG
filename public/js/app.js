@@ -174,9 +174,11 @@ window.addEventListener(evt, loadHeroBg, { once: true, passive: true })
 );
 }
 }
-setText('heroHoursBadge', s.operating_hours || '24/7 Hours Service');
-setText('heroRegBadge', s.registration_no ? `Registration No: ${s.registration_no}` : '');
-setText('heroEstBadge', s.established_date ? `Established: ${s.established_date}` : '');
+const hoursBadge = document.getElementById('heroHoursBadge');
+if (hoursBadge) {
+const hoursText = s.operating_hours || '24/7 Hours Service (Round the Clock)';
+hoursBadge.innerHTML = `<span class="status-pulse-dot"></span><span>${escapeHtml(hoursText)} • Gwadar</span>`;
+}
 setText('heroOrgName', s.organization_name || '');
 setText('heroSlogan', s.slogan ? `“${s.slogan}”` : '');
 setText('heroVision', s.vision_text || '');
@@ -192,111 +194,79 @@ heroLogo.src = targetSrc;
 }
 }
 const regional = stats.filter((x) => x.stat_group === 'regional');
-const caseWise = stats.filter((x) => x.stat_group === 'case_wise');
 const totalRegional = regional.reduce((acc, item) => acc + (Number(item.count_value) || 0), 0);
-const totalPatients = totalRegional || Number(s.total_patients_served) || 0;
+const totalPatients = totalRegional || Number(s.total_patients_served) || 4225;
+
 const metricItems = [
-{
-value: formatNumber(totalPatients),
-label: 'Total Patients Served',
-sub: 'Gwadar City, Surrounding Areas & District Kech'
-}
+  {
+    value: `${formatNumber(totalPatients)}+`,
+    label: 'Patients Assisted',
+    sub: 'Gwadar City, Coastal Region & District Kech'
+  },
+  {
+    value: s.operating_hours ? s.operating_hours.split(' ')[0] : '24/7',
+    label: 'Round-the-Clock Response',
+    sub: 'Rapid emergency ambulance dispatch'
+  },
+  {
+    value: `${(data.ambulances || []).length || 3} Units`,
+    label: 'Active Ambulance Fleet',
+    sub: 'Serving urban, highway & rural emergencies'
+  }
 ];
-for (const c of caseWise) {
-metricItems.push({
-value: formatNumber(c.count_value),
-label: c.label,
-sub: c.sub_details || 'Verified Case Record'
-});
-}
-if (s.mortuary_total_bodies || s.ghusl_total_bodies) {
-metricItems.push({
-value: `${s.mortuary_total_bodies || 43} / ${s.ghusl_total_bodies || 26}`,
-label: 'Mortuary & Ghusl Cases',
-sub: '43 Mortuary Preserved • 26 Ritual Washings'
-});
-}
+
 const strip = document.getElementById('heroMetricsStrip');
 if (strip) {
-const newStripHtml = metricItems
-.map(
-(m) => `<div class="metric-card"><div class="metric-value">${escapeHtml(m.value)}</div><div class="metric-label">${escapeHtml(m.label)}</div><div class="metric-sub">${escapeHtml(m.sub)}</div></div>`
-)
-.join('');
-const expectedText = metricItems.map((m) => `${m.value}${m.label}${m.sub}`).join('').replace(/\s+/g, '');
-if (strip.textContent.replace(/\s+/g, '') !== expectedText) {
-strip.innerHTML = newStripHtml;
+  const newStripHtml = metricItems
+    .map(
+      (m) =>
+        `<div class="metric-card"><div class="metric-value">${escapeHtml(m.value)}</div><div class="metric-label">${escapeHtml(m.label)}</div><div class="metric-sub">${escapeHtml(m.sub)}</div></div>`
+    )
+    .join('');
+  const expectedText = metricItems.map((m) => `${m.value}${m.label}${m.sub}`).join('').replace(/\s+/g, '');
+  if (strip.textContent.replace(/\s+/g, '') !== expectedText) {
+    strip.innerHTML = newStripHtml;
+  }
 }
-}
-setText(
-'homeIntroEyebrow',
-`${s.registration_no ? `Reg No: ${s.registration_no} • ` : ''}${s.established_date ? `Established ${s.established_date}` : ''}`
-);
-setText('homeIntroTitle', s.organization_name || 'Gwadar Ambulance Service, Gwadar');
-setText('homeIntroText', s.vision_text || '');
+
 const dirGrid = document.getElementById('homeDirectoryGrid');
 if (dirGrid) {
-const directoryCards = [
-{
-nav: 'about',
-meta: `Established ${s.established_date || '1st January, 2022'}`,
-title: 'About Us, Vision & Mission',
-desc: `Read our official history, vision, ${(data.missionPoints || []).length} mission commitments, proposed projects, and institutional demands.`,
-cta: 'Open About Us →'
-},
-{
-nav: 'services',
-meta: `${formatNumber(totalPatients)} Total Patients Served`,
-title: 'Emergency Services & Statistics',
-desc: `Explore ${(data.services || []).length} emergency medical & humanitarian services, regional & case-wise patient statistics, and disaster rescue operations.`,
-cta: 'Open Services →'
-},
-{
-nav: 'ambulances',
-meta: `${(data.ambulances || []).length} Ambulance Units`,
-title: 'Our Ambulance Fleet',
-desc: 'View our 24/7 operational emergency ambulances serving Gwadar, Kech, and adjoining areas, plus the proposed Jewni expansion.',
-cta: 'Open Ambulances →'
-},
-{
-nav: 'team',
-meta: `${(data.teamMembers || []).length} Organogram Roles`,
-title: 'Our Team & Organogram',
-desc: 'Inspect the complete organizational hierarchy from Chairman and Executive Leadership to Medical Officer, Gosal, and 24/7 Drivers.',
-cta: 'Open Our Team →'
-},
-{
-nav: 'gallery',
-meta: `${(data.gallery || []).length} Official Photographs`,
-title: 'Photo Gallery & Field Media',
-desc: 'Browse authentic photographs from emergency operations, ambulance fleet, mortuary facilities, flood rescues, and community meetings.',
-cta: 'Open Gallery →'
-},
-{
-nav: 'facilities',
-meta: `${(data.facilities || []).length} Facilities • ${(data.medicalInventory || []).length} Medicine Items`,
-title: 'Facilities, Mortuary & Medicine Stock',
-desc: 'View refrigerated mortuary chambers, ritual washing (Ghusl) records, and Ethqaf & Gwadar Ijtema medicine inventories.',
-cta: 'Open Facilities →'
-},
-{
-nav: 'contact',
-meta: s.operating_hours || '24/7 Hours Service',
-title: 'Contact & Coordination',
-desc: 'Reach out to Gwadar Ambulance Service Gwadar & Bin Ahsaan Welfare Trust for emergency coordination or community programs.',
-cta: 'Open Contact Us →'
-}
-];
-const expectedDirText = directoryCards.map((c) => `${c.meta}${c.title}${c.desc}${c.cta}`).join('').replace(/\s+/g, '');
-if (dirGrid.textContent.replace(/\s+/g, '') !== expectedDirText) {
-dirGrid.innerHTML = directoryCards
-.map(
-(c) => `<a href="#${escapeHtml(c.nav)}" class="home-dir-card" data-nav="${escapeHtml(c.nav)}"><div><div class="home-dir-meta">${escapeHtml(c.meta)}</div><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.desc)}</p></div><span class="home-dir-link">${escapeHtml(c.cta)}</span></a>`
-)
-.join('');
+  const pillarCards = [
+    {
+      nav: 'services',
+      badge: '🚑 Emergency Response',
+      title: '24/7 Emergency Ambulance Care',
+      desc: 'Rapid medical transport for acute health emergencies, highway traffic casualties, and maternal deliveries across Gwadar and Kech.',
+      cta: 'Explore Services & Patient Stats →'
+    },
+    {
+      nav: 'facilities',
+      badge: '❄️ Cold Preservation & Sanctity',
+      title: 'Dignified Mortuary & Ghusl Facilities',
+      desc: 'Free refrigerated preservation chambers, complete ritual washing (Ghusl), and respectful shrouding of the deceased adhering to the highest standards.',
+      cta: 'View Mortuary & Facilities →'
+    },
+    {
+      nav: 'services',
+      badge: '🤝 Community Welfare',
+      title: 'Disaster Operations & Relief Camps',
+      desc: 'Proactive rescue operations during coastal floods, organized free medical camps, and provision of vital emergency medicines to vulnerable citizens.',
+      cta: 'View Disaster Relief Records →'
+    }
+  ];
+
+  const expectedDirText = pillarCards.map((c) => `${c.badge}${c.title}${c.desc}${c.cta}`).join('').replace(/\s+/g, '');
+  if (dirGrid.textContent.replace(/\s+/g, '') !== expectedDirText) {
+    dirGrid.innerHTML = pillarCards
+      .map(
+        (c) =>
+          `<a href="#${escapeHtml(c.nav)}" class="home-pillar-card" data-nav="${escapeHtml(c.nav)}"><div><span class="home-pillar-badge">${escapeHtml(c.badge)}</span><h3>${escapeHtml(c.title)}</h3><p>${escapeHtml(c.desc)}</p></div><span class="home-pillar-link">${escapeHtml(c.cta)}</span></a>`
+      )
+      .join('');
+  }
 }
 }
-}
+
 function renderAboutSection(data) {
 const s = data.settings || {};
 const missions = data.missionPoints || [];
@@ -863,14 +833,34 @@ if (e.key === 'gasg_master_db_v1') loadPortalData();
 setupPwaInstall();
 }
 function isStandalonePwa() {
-return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+return window.matchMedia('(display-mode: standalone)').matches ||
+       window.matchMedia('(display-mode: minimal-ui)').matches ||
+       window.navigator.standalone === true ||
+       document.referrer.includes('android-app://');
+}
+function showToast(msg) {
+let toast = document.getElementById('gasgToastNotification');
+if (!toast) {
+toast = document.createElement('div');
+toast.id = 'gasgToastNotification';
+toast.className = 'gasg-toast hidden';
+document.body.appendChild(toast);
+}
+toast.textContent = msg;
+toast.classList.remove('hidden');
+clearTimeout(toast._timeout);
+toast._timeout = setTimeout(() => {
+toast.classList.add('hidden');
+}, 4000);
 }
 function setupPwaInstall() {
 if ('serviceWorker' in navigator) {
-window.addEventListener('load', () => {
-navigator.serviceWorker.register('/sw.js').then((reg) => {
+navigator.serviceWorker.register('/sw.js', { scope: '/' })
+.then((reg) => {
 reg.update().catch(() => {});
-}).catch(() => {});
+})
+.catch((err) => {
+console.warn('SW registration failed:', err);
 });
 }
 const banner = document.getElementById('pwaInstallBanner');
@@ -886,24 +876,46 @@ if (banner) banner.classList.add('hidden');
 if (headerBtn) headerBtn.classList.add('hidden');
 return;
 }
+if ('getInstalledRelatedApps' in navigator) {
+navigator.getInstalledRelatedApps().then((apps) => {
+if (apps && apps.length > 0) {
+if (banner) banner.classList.add('hidden');
+if (headerBtn) {
+headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
+headerBtn.title = 'G.A.S.G is already installed on your device';
+headerBtn.classList.remove('hidden');
+}
+}
+}).catch(() => {});
+}
 if (headerBtn) headerBtn.classList.remove('hidden');
 function showInstallBanner() {
 if (isStandalonePwa()) return;
 if (sessionStorage.getItem('gasg_pwa_dismissed') === '1') return;
 if (banner) banner.classList.remove('hidden');
 }
-if (window.__gasgDeferredPrompt) {
+window.__gasgOnInstallReady = () => {
+if (headerBtn) {
+headerBtn.classList.remove('hidden');
+}
 showInstallBanner();
+};
+if (window.__gasgDeferredPrompt) {
+window.__gasgOnInstallReady();
 }
 window.addEventListener('beforeinstallprompt', (e) => {
 e.preventDefault();
 window.__gasgDeferredPrompt = e;
-showInstallBanner();
+window.__gasgOnInstallReady();
 });
 window.addEventListener('appinstalled', () => {
 window.__gasgDeferredPrompt = null;
 if (banner) banner.classList.add('hidden');
-if (headerBtn) headerBtn.classList.add('hidden');
+if (headerBtn) {
+headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
+headerBtn.title = 'G.A.S.G is installed on your device';
+}
+showToast('Gwadar Ambulance Service app installed successfully!');
 });
 let interactionTriggered = false;
 const triggerInstallBanner = () => {
@@ -916,49 +928,116 @@ window.addEventListener(evt, triggerInstallBanner, { once: true, passive: true }
 });
 setTimeout(() => {
 showInstallBanner();
-}, 3000);
+}, 8000);
 function openGuideModal() {
 if (!guideModal) return;
 const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isAndroid = /android/i.test(navigator.userAgent);
+const isEmbedded = window.top !== window.self;
 let instructions = '';
-if (isIos) {
+if (isEmbedded) {
+const directUrl = window.location.href.includes('huggingface.co')
+  ? 'https://kabeer50939-gasg.hf.space'
+  : (window.location.origin + window.location.pathname);
 instructions = `
-<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
-  <li>Tap the <strong>Share</strong> button <span style="font-size:1.15rem;">⎋</span> at the bottom of Safari.</li>
-  <li>Scroll down and tap <strong>Add to Home Screen ➕</strong>.</li>
-  <li>Tap <strong>Add</strong> at top right to install G.A.S.G on your iPhone/iPad!</li>
-</ol>`;
+  <div style="background:rgba(200,16,46,0.1);border:1px solid rgba(200,16,46,0.3);border-radius:10px;padding:0.85rem;margin-bottom:1rem;color:#fecaca;font-size:0.88rem;line-height:1.45;">
+    <strong>Direct App Installation Required</strong><br/>
+    Browsers restrict 1-click app installation from inside embedded frames. Open the full standalone app below to install it with 1 click.
+  </div>
+  <a href="${directUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-block" style="text-decoration:none;margin-bottom:1rem;font-size:0.95rem;">
+    🚀 Open Standalone Portal &amp; Install
+  </a>
+  <p style="font-size:0.82rem;color:#94a3b8;text-align:center;margin:0;">
+    Once opened in the new tab, click <strong>Install App</strong> for instant installation.
+  </p>
+`;
+} else if (isIos) {
+instructions = `
+  <div class="pwa-instructions-list">
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">1</span>
+      <div>Tap the <strong>Share</strong> button <span class="pwa-keycap">⎋ / 📤</span> at the bottom of Safari (or top on iPad).</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">2</span>
+      <div>Scroll down and select <span class="pwa-keycap">➕ Add to Home Screen</span>.</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">3</span>
+      <div>Tap <strong>Add</strong> at top right to install G.A.S.G on your iPhone or iPad!</div>
+    </div>
+  </div>
+`;
 } else if (isAndroid) {
 instructions = `
-<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
-  <li>Tap the <strong>three dots menu ⋮</strong> at top right of your browser.</li>
-  <li>Select <strong>Install app</strong> or <strong>Add to Home screen</strong>.</li>
-  <li>Confirm <strong>Install</strong> to add G.A.S.G directly to your apps!</li>
-</ol>`;
+  <div class="pwa-instructions-list">
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">1</span>
+      <div>Tap the <strong>three dots menu</strong> <span class="pwa-keycap">⋮</span> in the top right corner of Chrome.</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">2</span>
+      <div>Select <span class="pwa-keycap">Install app</span> or <span class="pwa-keycap">Add to Home screen</span>.</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">3</span>
+      <div>Confirm <strong>Install</strong> to add G.A.S.G directly to your phone apps!</div>
+    </div>
+  </div>
+  <p style="font-size:0.78rem;color:#94a3b8;margin-top:0.75rem;line-height:1.35;">
+    <em>Note: If you opened this link from WhatsApp or Facebook, tap the three dots and choose <strong>"Open in Chrome"</strong> first.</em>
+  </p>
+`;
 } else {
 instructions = `
-<ol style="margin-left:1.25rem;line-height:1.7;font-size:0.92rem;color:#e2e8f0;">
-  <li>Look at the right side of your browser address bar and click the <strong>Install icon (⊕ or 🖥️)</strong>.</li>
-  <li>Or click menu <strong>⋮ → Cast, save, and share → Install page as app</strong>.</li>
-  <li>Click <strong>Install</strong> to pin G.A.S.G directly to your Windows Taskbar or Desktop!</li>
-</ol>`;
+  <div class="pwa-instructions-list">
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">1</span>
+      <div>Look at the right side of your browser address bar and click the <strong>Install icon</strong> <span class="pwa-keycap">⊕ / 🖥️</span>.</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">2</span>
+      <div>Or click browser menu <span class="pwa-keycap">⋮</span> &rarr; <strong>Save and share</strong> (or <strong>Apps</strong>) &rarr; <strong>Install Gwadar Ambulance Service</strong>.</div>
+    </div>
+    <div class="pwa-step-item">
+      <span class="pwa-step-num">3</span>
+      <div>Click <strong>Install</strong> to pin G.A.S.G directly to your Windows Taskbar or Desktop!</div>
+    </div>
+  </div>
+`;
 }
 if (guideInstructions) guideInstructions.innerHTML = instructions;
 guideModal.classList.remove('hidden');
 }
+function closeGuideModal() {
+if (guideModal) guideModal.classList.add('hidden');
+}
 async function handleInstallAction() {
-if (window.__gasgDeferredPrompt) {
-try {
-window.__gasgDeferredPrompt.prompt();
-const choice = await window.__gasgDeferredPrompt.userChoice;
-if (choice && choice.outcome === 'accepted') {
-window.__gasgDeferredPrompt = null;
-if (banner) banner.classList.add('hidden');
-if (headerBtn) headerBtn.classList.add('hidden');
+if (isStandalonePwa()) {
+showToast('G.A.S.G is already running as an installed app!');
 return;
 }
-} catch (_) {}
+if (window.top !== window.self) {
+openGuideModal();
+return;
+}
+if (window.__gasgDeferredPrompt) {
+const promptEvent = window.__gasgDeferredPrompt;
+window.__gasgDeferredPrompt = null;
+try {
+await promptEvent.prompt();
+const choice = await promptEvent.userChoice;
+if (choice && choice.outcome === 'accepted') {
+if (banner) banner.classList.add('hidden');
+if (headerBtn) {
+headerBtn.innerHTML = `<span>✓</span><span>Installed</span>`;
+headerBtn.title = 'G.A.S.G is installed on your device';
+}
+}
+} catch (err) {
+console.warn('Install prompt error:', err);
+}
+return;
 }
 openGuideModal();
 }
@@ -970,16 +1049,20 @@ if (banner) banner.classList.add('hidden');
 sessionStorage.setItem('gasg_pwa_dismissed', '1');
 });
 }
-if (guideCloseBtn) {
-guideCloseBtn.addEventListener('click', () => {
-if (guideModal) guideModal.classList.add('hidden');
+if (guideCloseBtn) guideCloseBtn.addEventListener('click', closeGuideModal);
+if (guideGotItBtn) guideGotItBtn.addEventListener('click', closeGuideModal);
+if (guideModal) {
+guideModal.addEventListener('click', (e) => {
+if (e.target === guideModal) {
+closeGuideModal();
+}
 });
 }
-if (guideGotItBtn) {
-guideGotItBtn.addEventListener('click', () => {
-if (guideModal) guideModal.classList.add('hidden');
-});
+window.addEventListener('keydown', (e) => {
+if (e.key === 'Escape' && guideModal && !guideModal.classList.contains('hidden')) {
+closeGuideModal();
 }
+});
 }
 document.addEventListener('DOMContentLoaded', () => {
 setupInteractions();
