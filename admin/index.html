@@ -774,16 +774,16 @@
           <div class="cropper-tool-group">
             <label for="cropMaxDimSelect">Max Output Resolution:</label>
             <select id="cropMaxDimSelect">
-              <option value="1200" selected>Auto-Optimize (Max 1200px)</option>
-              <option value="800">Compact Web (Max 800px)</option>
+              <option value="800" selected>Compact Web (Recommended - Max 800px)</option>
               <option value="500">Profile / Thumbnail (Max 500px)</option>
+              <option value="1200">High Quality (Max 1200px)</option>
               <option value="1600">High Detail (Max 1600px)</option>
             </select>
           </div>
 
           <div class="cropper-tool-group">
-            <label for="cropQualityRange">Auto-Compress Quality (<span id="cropQualityVal">80%</span>):</label>
-            <input type="range" id="cropQualityRange" min="40" max="95" value="80" />
+            <label for="cropQualityRange">Auto-Compress Quality (<span id="cropQualityVal">75%</span>):</label>
+            <input type="range" id="cropQualityRange" min="40" max="95" value="75" />
           </div>
         </div>
 

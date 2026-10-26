@@ -187,7 +187,79 @@
     return result;
   }
 
+  let cachedDbObj = null;
+  let cloudSyncDebounceTimer = null;
+  let isCloudSyncInProgress = false;
+  let hasPendingCloudSync = false;
+  let lastSyncAction = 'Update portal data';
+
+  async function triggerBackgroundCloudSync() {
+    if (isCloudSyncInProgress) {
+      hasPendingCloudSync = true;
+      return;
+    }
+    isCloudSyncInProgress = true;
+    hasPendingCloudSync = false;
+
+    updateCloudStatus('syncing', 'Syncing to Cloud Space...');
+    try {
+      const currentDb = await getStaticMasterDb();
+      const actionMsg = lastSyncAction || 'Update portal data';
+      await commitPortalDataToHuggingFace(currentDb, actionMsg);
+      const nowStr = new Date().toISOString().replace('T', ' ').slice(11, 19);
+      updateCloudStatus('synced', `Live in Cloud (${nowStr})`);
+      if (currentDb && currentDb.settings) {
+        currentDb.settings.local_backup_status = 'Published Live to Cloud';
+        currentDb.settings.local_backup_last_sync = new Date().toISOString().replace('T', ' ').slice(0, 19);
+        localStorage.setItem('gasg_master_db_v1', JSON.stringify(currentDb));
+      }
+    } catch (cloudErr) {
+      console.warn('Background cloud commit warning:', cloudErr);
+      updateCloudStatus('error', 'Saved locally (Cloud retry pending)');
+    } finally {
+      isCloudSyncInProgress = false;
+      if (hasPendingCloudSync) {
+        setTimeout(triggerBackgroundCloudSync, 1000);
+      }
+    }
+  }
+
+  function scheduleBackgroundCloudSync(action, details) {
+    lastSyncAction = `${action}: ${details || ''}`;
+    updateCloudStatus('syncing', 'Saved locally • Syncing to Cloud...');
+    clearTimeout(cloudSyncDebounceTimer);
+    cloudSyncDebounceTimer = setTimeout(() => {
+      triggerBackgroundCloudSync();
+    }, 1500);
+  }
+
   async function getStaticMasterDb() {
+    if (cachedDbObj && cachedDbObj.settings) {
+      return cachedDbObj;
+    }
+
+    const localRaw = localStorage.getItem('gasg_master_db_v1');
+    if (localRaw) {
+      try {
+        const parsed = JSON.parse(localRaw);
+        if (parsed && parsed.settings && (parsed.services || parsed.gallery || parsed.teamMembers)) {
+          cachedDbObj = parsed;
+          if (!cachedDbObj.contactMessages) cachedDbObj.contactMessages = [];
+          if (!cachedDbObj.admins) {
+            cachedDbObj.admins = [
+              { id: 1, username: 'admin', password: 'GasgAdmin@114272', full_name: 'GASG Chief Administrator', role: 'Super Administrator' }
+            ];
+          }
+          if (!cachedDbObj.auditLogs) {
+            cachedDbObj.auditLogs = [
+              { id: 1, admin_username: 'admin', action: 'SYSTEM_READY', details: 'Portal synchronized', created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
+            ];
+          }
+          return cachedDbObj;
+        }
+      } catch (_) {}
+    }
+
     let dbObj = null;
     const cacheBuster = `_t=${Date.now()}`;
     try {
@@ -199,15 +271,6 @@
         dbObj = await res.json();
       }
     } catch (_) {}
-
-    if (!dbObj || !dbObj.settings) {
-      const raw = localStorage.getItem('gasg_master_db_v1');
-      if (raw) {
-        try {
-          dbObj = JSON.parse(raw);
-        } catch (_) {}
-      }
-    }
 
     if (!dbObj || !dbObj.settings) {
       dbObj = {
@@ -225,22 +288,6 @@
       };
     }
 
-    const localRaw = localStorage.getItem('gasg_master_db_v1');
-    if (localRaw) {
-      try {
-        const localObj = JSON.parse(localRaw);
-        if (Array.isArray(localObj.admins) && localObj.admins.length) {
-          dbObj.admins = localObj.admins;
-        }
-        if (Array.isArray(localObj.auditLogs) && localObj.auditLogs.length) {
-          dbObj.auditLogs = localObj.auditLogs;
-        }
-        if (Array.isArray(localObj.contactMessages) && localObj.contactMessages.length) {
-          dbObj.contactMessages = localObj.contactMessages;
-        }
-      } catch (_) {}
-    }
-
     if (!dbObj.contactMessages) dbObj.contactMessages = [];
     if (!dbObj.admins) {
       dbObj.admins = [
@@ -252,8 +299,10 @@
         { id: 1, admin_username: 'admin', action: 'SYSTEM_READY', details: 'Portal synchronized', created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }
       ];
     }
+
+    cachedDbObj = dbObj;
     localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
-    return dbObj;
+    return cachedDbObj;
   }
 
   async function handleStaticHostApi(url, method, body) {
@@ -283,18 +332,14 @@
         created_at: nowStr
       });
       dbObj.settings.local_backup_last_sync = nowStr;
-      dbObj.settings.local_backup_status = 'Published Live to Cloud';
+      dbObj.settings.local_backup_status = 'Saved locally • Syncing...';
       dbObj._localModifiedAt = Date.now();
+      cachedDbObj = dbObj;
       localStorage.setItem('gasg_master_db_v1', JSON.stringify(dbObj));
 
-      updateCloudStatus('syncing', 'Publishing to Cloud Space...');
-      try {
-        await commitPortalDataToHuggingFace(dbObj, `${action}: ${details || ''}`);
-        updateCloudStatus('synced', `Live in Cloud (${nowStr.slice(11, 19)})`);
-      } catch (cloudErr) {
-        console.warn('Cloud commit failed, saved locally:', cloudErr);
-        updateCloudStatus('error', 'Saved locally (Cloud sync warning)');
-      }
+      // Asynchronous background commit: zero UI freeze, instant local save
+      scheduleBackgroundCloudSync(action, details);
+      return { success: true };
     };
 
     if (url === '/api/admin/dashboard' && method === 'GET') {
@@ -1066,8 +1111,8 @@
     const sw = Math.max(1, Math.min(cropperState.imgNaturalW - sx, Math.round(c.w * ratioX)));
     const sh = Math.max(1, Math.min(cropperState.imgNaturalH - sy, Math.round(c.h * ratioY)));
 
-    const maxDim = Number(document.getElementById('cropMaxDimSelect').value) || 1200;
-    const qualityPct = Number(document.getElementById('cropQualityRange').value) || 80;
+    const maxDim = Number(document.getElementById('cropMaxDimSelect').value) || 800;
+    const qualityPct = Number(document.getElementById('cropQualityRange').value) || 75;
     const quality = Math.max(0.3, Math.min(0.95, qualityPct / 100));
 
     let outW = sw;
@@ -1266,9 +1311,29 @@
       }
       const btn = document.getElementById('cropperConfirmUploadBtn');
       btn.disabled = true;
-      btn.textContent = 'Uploading Compressed Photo...';
+      btn.textContent = 'Processing Photo...';
 
       try {
+        const isStaticHost = window.location.hostname.includes('hf.space') ||
+                             window.location.protocol === 'file:' ||
+                             window.location.port === '8080' ||
+                             window.location.pathname.includes('/public/');
+
+        // If in static web app mode, immediately convert blob to data URL with zero network latency
+        if (isStaticHost) {
+          const dataUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(cropperState.compressedBlob);
+          });
+          showToast(`Photo optimized (${formatBytes(cropperState.compressedBlob.size)})!`);
+          if (typeof cropperState.onUploadedCallback === 'function') {
+            cropperState.onUploadedCallback(dataUrl);
+          }
+          closeCropper();
+          return;
+        }
+
         const fd = new FormData();
         fd.append('image', cropperState.compressedBlob, `gasg_cropped_${Date.now()}.webp`);
         const res = await fetch('/api/admin/upload', {
@@ -1833,6 +1898,15 @@
           btnManualCloudSync.disabled = false;
           btnManualCloudSync.innerHTML = '&#9729; Publish Live';
         }
+      });
+    }
+
+    const cloudSyncPill = document.getElementById('cloudSyncPill');
+    if (cloudSyncPill) {
+      cloudSyncPill.style.cursor = 'pointer';
+      cloudSyncPill.addEventListener('click', () => {
+        triggerBackgroundCloudSync();
+        showToast('Syncing latest portal data with Cloud Space...');
       });
     }
 
