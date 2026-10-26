@@ -937,7 +937,7 @@ const isEmbedded = window.top !== window.self;
 let instructions = '';
 if (isEmbedded) {
 const directUrl = window.location.href.includes('huggingface.co')
-  ? 'https://kabeer50939-gasg.hf.space'
+  ? 'https://kabeer50939-gasg.static.hf.space'
   : (window.location.origin + window.location.pathname);
 instructions = `
   <div style="background:rgba(200,16,46,0.1);border:1px solid rgba(200,16,46,0.3);border-radius:10px;padding:0.85rem;margin-bottom:1rem;color:#fecaca;font-size:0.88rem;line-height:1.45;">
